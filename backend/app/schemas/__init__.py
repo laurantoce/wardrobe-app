@@ -1,9 +1,11 @@
 from app.schemas.garment import GarmentCreate, GarmentRead, GarmentUpdate
 from app.schemas.outfit import OutfitCreate, OutfitRead, OutfitUpdate
 from app.schemas.stats import (
+    ActivityPoint,
     CategorySpending,
     ColorUsage,
     GarmentUsage,
+    SpendingPoint,
     WardrobeSummary,
 )
 from app.schemas.wash import WashCreate, WashRead
@@ -24,4 +26,6 @@ __all__ = [
     "CategorySpending",
     "ColorUsage",
     "GarmentUsage",
+    "SpendingPoint",
+    "ActivityPoint",
 ]

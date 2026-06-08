@@ -1,0 +1,90 @@
+/** Domain model (camelCase) used throughout the app. */
+export interface Garment {
+  id: number;
+  name: string;
+  category: string;
+  colorHex: string | null;
+  colorName: string | null;
+  brand: string | null;
+  purchaseDate: string | null; // ISO date (YYYY-MM-DD)
+  purchasePrice: number | null;
+  imageUrl: string | null;
+  sourceUrl: string | null;
+  notes: string | null;
+  createdAt: string;
+}
+
+/** Wire format from FastAPI (snake_case; Decimals serialized as strings). */
+export interface GarmentDto {
+  id: number;
+  name: string;
+  category: string;
+  color_hex: string | null;
+  color_name: string | null;
+  brand: string | null;
+  purchase_date: string | null;
+  purchase_price: string | null;
+  image_url: string | null;
+  source_url: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
+/** Form input for create/update. */
+export interface GarmentInput {
+  name: string;
+  category: string;
+  colorHex?: string | null;
+  colorName?: string | null;
+  brand?: string | null;
+  purchaseDate?: string | null;
+  purchasePrice?: number | null;
+  imageUrl?: string | null;
+  sourceUrl?: string | null;
+  notes?: string | null;
+}
+
+export const GARMENT_CATEGORIES = [
+  'top',
+  'bottom',
+  'shoes',
+  'outerwear',
+  'dress',
+  'accessory',
+  'underwear',
+  'other',
+] as const;
+
+export function toGarment(d: GarmentDto): Garment {
+  return {
+    id: d.id,
+    name: d.name,
+    category: d.category,
+    colorHex: d.color_hex,
+    colorName: d.color_name,
+    brand: d.brand,
+    purchaseDate: d.purchase_date,
+    purchasePrice: d.purchase_price != null ? Number(d.purchase_price) : null,
+    imageUrl: d.image_url,
+    sourceUrl: d.source_url,
+    notes: d.notes,
+    createdAt: d.created_at,
+  };
+}
+
+/** camelCase input -> snake_case payload. Money sent as string to preserve precision. */
+export function toGarmentPayload(i: Partial<GarmentInput>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (i.name !== undefined) out['name'] = i.name;
+  if (i.category !== undefined) out['category'] = i.category;
+  if (i.colorHex !== undefined) out['color_hex'] = i.colorHex || null;
+  if (i.colorName !== undefined) out['color_name'] = i.colorName || null;
+  if (i.brand !== undefined) out['brand'] = i.brand || null;
+  if (i.purchaseDate !== undefined) out['purchase_date'] = i.purchaseDate || null;
+  if (i.purchasePrice !== undefined)
+    out['purchase_price'] = i.purchasePrice != null ? String(i.purchasePrice) : null;
+  if (i.imageUrl !== undefined) out['image_url'] = i.imageUrl || null;
+  if (i.sourceUrl !== undefined) out['source_url'] = i.sourceUrl || null;
+  if (i.notes !== undefined) out['notes'] = i.notes || null;
+  return out;
+}

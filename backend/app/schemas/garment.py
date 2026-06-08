@@ -8,6 +8,7 @@ class GarmentBase(BaseModel):
     name: str = Field(max_length=120)
     category: str = Field(max_length=50)
     color_hex: str | None = Field(default=None, max_length=7)
+    color_name: str | None = Field(default=None, max_length=40)
     brand: str | None = Field(default=None, max_length=100)
     purchase_date: date | None = None
     purchase_price: Decimal | None = Field(default=None, ge=0)
@@ -26,6 +27,7 @@ class GarmentUpdate(BaseModel):
     name: str | None = Field(default=None, max_length=120)
     category: str | None = Field(default=None, max_length=50)
     color_hex: str | None = Field(default=None, max_length=7)
+    color_name: str | None = Field(default=None, max_length=40)
     brand: str | None = Field(default=None, max_length=100)
     purchase_date: date | None = None
     purchase_price: Decimal | None = Field(default=None, ge=0)

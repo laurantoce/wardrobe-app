@@ -26,6 +26,10 @@ class Garment(Base):
     # Store main color as hex, for example: #000000, #FFFFFF, #A43F2D
     color_hex: Mapped[str | None] = mapped_column(String(7), nullable=True)
 
+    # Human/family color name from the curated palette (e.g. "Black", "Navy",
+    # "Camel"). Drives meaningful color analytics; hex stays for the exact swatch.
+    color_name: Mapped[str | None] = mapped_column(String(40), nullable=True)
+
     brand: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
     purchase_date: Mapped[date | None] = mapped_column(Date, nullable=True)
