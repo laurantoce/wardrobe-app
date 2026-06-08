@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: wardrobe-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: wardrobe
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    volumes:
+      - wardrobe_postgres_data:/var/lib/postgresql
+
+volumes:
+  wardrobe_postgres_data:
