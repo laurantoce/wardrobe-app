@@ -1,5 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from app.exceptions import NotFoundError, ValidationError
+from app.routers import garments, outfits, stats, washes, wears
 
 app = FastAPI(
     title="Wardrobe App API",
@@ -14,6 +18,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# Translate domain errors into HTTP responses so services stay framework-agnostic.
+@app.exception_handler(NotFoundError)
+def handle_not_found(request: Request, exc: NotFoundError) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND, content={"detail": str(exc)}
+    )
+
+
+@app.exception_handler(ValidationError)
+def handle_validation(request: Request, exc: ValidationError) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST, content={"detail": str(exc)}
+    )
+
+
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+
+app.include_router(garments.router)
+app.include_router(outfits.router)
+app.include_router(wears.router)
+app.include_router(washes.router)
+app.include_router(stats.router)
