@@ -1,7 +1,8 @@
 from app.schemas.garment import GarmentCreate, GarmentRead, GarmentUpdate
 from app.schemas.outfit import OutfitCreate, OutfitRead, OutfitUpdate
 from app.schemas.stats import (
-    CategoryCount,
+    CategoryBreakdown,
+    CategoryColorCount,
     CategorySpending,
     ColorUsage,
     SpendingPoint,
@@ -16,7 +17,8 @@ __all__ = [
     "OutfitRead",
     "OutfitUpdate",
     "WardrobeSummary",
-    "CategoryCount",
+    "CategoryBreakdown",
+    "CategoryColorCount",
     "CategorySpending",
     "ColorUsage",
     "SpendingPoint",

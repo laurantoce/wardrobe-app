@@ -62,7 +62,7 @@ export const StatsStore = signalStore(
       store.spendingSeries().reduce((m, p) => Math.max(m, p.totalSpent), 0),
     ),
     maxCategoryCount: computed(() =>
-      (store.summary()?.categoryCounts ?? []).reduce((m, c) => Math.max(m, c.count), 0),
+      (store.summary()?.categoryBreakdown ?? []).reduce((m, c) => Math.max(m, c.total), 0),
     ),
   })),
   withMethods((store, api = inject(StatsApi)) => {

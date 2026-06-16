@@ -63,7 +63,7 @@ const LABEL = 'block text-xs font-medium text-muted mb-1.5';
                   (change)="toggle(g.id)"
                 />
                 <span
-                  class="h-3.5 w-3.5 rounded-full border border-line"
+                  class="h-3.5 w-3.5 rounded-full border border-line [box-shadow:inset_0_0_0_1px_#0000001a]"
                   [style.background-color]="g.colorHex || '#ffffff'"
                 ></span>
                 <span class="truncate">{{ g.name }}</span>

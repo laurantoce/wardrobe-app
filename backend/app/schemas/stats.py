@@ -4,15 +4,22 @@ from decimal import Decimal
 from pydantic import BaseModel
 
 
-class CategoryCount(BaseModel):
-    category: str
+class CategoryColorCount(BaseModel):
+    color_hex: str | None = None
+    color_name: str | None = None
     count: int
+
+
+class CategoryBreakdown(BaseModel):
+    category: str
+    total: int
+    colors: list[CategoryColorCount]
 
 
 class WardrobeSummary(BaseModel):
     total_garments: int
     total_outfits: int
-    category_counts: list[CategoryCount]
+    category_breakdown: list[CategoryBreakdown]
 
 
 class CategorySpending(BaseModel):

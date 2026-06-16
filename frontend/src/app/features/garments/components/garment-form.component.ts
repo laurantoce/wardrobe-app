@@ -54,7 +54,7 @@ const LABEL = 'block text-xs font-medium text-muted mb-1.5';
               type="button"
               (click)="selectColor(c)"
               [title]="c.name"
-              class="h-7 w-7 rounded-full border transition-transform hover:scale-110"
+              class="h-7 w-7 rounded-full border transition-transform hover:scale-110 [box-shadow:inset_0_0_0_1px_#0000001a]"
               [style.background-color]="c.hex"
               [class]="
                 isSelected(c)

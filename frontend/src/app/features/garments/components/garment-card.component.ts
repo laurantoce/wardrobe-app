@@ -19,7 +19,7 @@ import { Garment } from '../data/garment.models';
       >
         <div class="flex w-full items-center gap-2">
           <span
-            class="h-4 w-4 shrink-0 rounded-full border border-line"
+            class="h-4 w-4 shrink-0 rounded-full border border-line [box-shadow:inset_0_0_0_1px_#0000001a]"
             [style.background-color]="garment().colorHex || '#ffffff'"
           ></span>
           <span class="truncate font-medium">{{ garment().name }}</span>

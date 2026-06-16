@@ -48,7 +48,7 @@ import { Garment, GarmentInput } from '../data/garment.models';
       <header class="mb-6 flex items-start justify-between gap-4">
         <div class="flex items-center gap-3">
           <span
-            class="h-8 w-8 shrink-0 rounded-full border border-line"
+            class="h-8 w-8 shrink-0 rounded-full border border-line [box-shadow:inset_0_0_0_1px_#0000001a]"
             [style.background-color]="g.colorHex || '#ffffff'"
           ></span>
           <div>

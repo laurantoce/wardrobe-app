@@ -71,13 +71,14 @@ class StatsRepository:
             .order_by(count.desc())
         ).all()
 
-    def category_counts(self, user_id: int) -> list[Row]:
+    def category_color_breakdown(self, user_id: int) -> list[Row]:
+        """Returns (category, color_name, color_hex, count) sorted by category then count desc."""
         count = func.count(Garment.id)
         return self.db.execute(
-            select(Garment.category, count)
+            select(Garment.category, Garment.color_name, Garment.color_hex, count)
             .where(Garment.user_id == user_id)
-            .group_by(Garment.category)
-            .order_by(count.desc())
+            .group_by(Garment.category, Garment.color_name, Garment.color_hex)
+            .order_by(Garment.category, count.desc())
         ).all()
 
     def spending_over_time(self, user_id: int, period: Period, start, end) -> list[Row]:

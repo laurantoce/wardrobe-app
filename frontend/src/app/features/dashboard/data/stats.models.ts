@@ -1,12 +1,19 @@
-export interface CategoryCount {
-  category: string;
+export interface CategoryColorCount {
+  colorHex: string | null;
+  colorName: string | null;
   count: number;
+}
+
+export interface CategoryBreakdown {
+  category: string;
+  total: number;
+  colors: CategoryColorCount[];
 }
 
 export interface Summary {
   totalGarments: number;
   totalOutfits: number;
-  categoryCounts: CategoryCount[];
+  categoryBreakdown: CategoryBreakdown[];
 }
 
 export interface CategorySpending {
@@ -31,7 +38,11 @@ export interface SpendingPoint {
 interface SummaryDto {
   total_garments: number;
   total_outfits: number;
-  category_counts: Array<{ category: string; count: number }>;
+  category_breakdown: Array<{
+    category: string;
+    total: number;
+    colors: Array<{ color_hex: string | null; color_name: string | null; count: number }>;
+  }>;
 }
 interface CategorySpendingDto {
   category: string;
@@ -54,7 +65,15 @@ export function toSummary(d: SummaryDto): Summary {
   return {
     totalGarments: d.total_garments,
     totalOutfits: d.total_outfits,
-    categoryCounts: d.category_counts,
+    categoryBreakdown: d.category_breakdown.map((cat) => ({
+      category: cat.category,
+      total: cat.total,
+      colors: cat.colors.map((c) => ({
+        colorHex: c.color_hex,
+        colorName: c.color_name,
+        count: c.count,
+      })),
+    })),
   };
 }
 

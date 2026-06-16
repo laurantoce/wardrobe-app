@@ -3,7 +3,8 @@ from datetime import date
 from app.models import Garment, Outfit
 from app.repositories import StatsRepository
 from app.schemas import (
-    CategoryCount,
+    CategoryBreakdown,
+    CategoryColorCount,
     CategorySpending,
     ColorUsage,
     SpendingPoint,
@@ -16,13 +17,27 @@ class StatsService:
         self.stats = stats
 
     def summary(self, user_id: int) -> WardrobeSummary:
+        rows = self.stats.category_color_breakdown(user_id)
+
+        # Group into categories preserving per-category color order (count desc from SQL)
+        cats: dict[str, dict] = {}
+        for cat, color_name, color_hex, count in rows:
+            if cat not in cats:
+                cats[cat] = {"total": 0, "colors": []}
+            cats[cat]["total"] += count
+            cats[cat]["colors"].append(
+                CategoryColorCount(color_hex=color_hex, color_name=color_name, count=count)
+            )
+
+        breakdown = [
+            CategoryBreakdown(category=cat, total=data["total"], colors=data["colors"])
+            for cat, data in sorted(cats.items(), key=lambda x: -x[1]["total"])
+        ]
+
         return WardrobeSummary(
             total_garments=self.stats.count_all(Garment, user_id),
             total_outfits=self.stats.count_all(Outfit, user_id),
-            category_counts=[
-                CategoryCount(category=cat, count=count)
-                for cat, count in self.stats.category_counts(user_id)
-            ],
+            category_breakdown=breakdown,
         )
 
     def spending_by_category(

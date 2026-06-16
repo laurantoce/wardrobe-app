@@ -32,7 +32,7 @@ import { Outfit } from '../data/outfit.models';
       <div class="mt-4 flex items-center gap-1.5">
         @for (g of outfit().garments.slice(0, 6); track g.id) {
           <span
-            class="h-5 w-5 rounded-full border border-line"
+            class="h-5 w-5 rounded-full border border-line [box-shadow:inset_0_0_0_1px_#0000001a]"
             [style.background-color]="g.colorHex || '#ffffff'"
             [title]="g.name"
           ></span>
