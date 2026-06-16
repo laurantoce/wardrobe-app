@@ -34,6 +34,11 @@ class ColorUsage(BaseModel):
     garment_count: int
 
 
+class MaterialCount(BaseModel):
+    material: str
+    count: int
+
+
 class SpendingPoint(BaseModel):
     period: date
     total_spent: Decimal

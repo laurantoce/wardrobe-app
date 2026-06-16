@@ -8,6 +8,7 @@ import {
   CategorySpendingDto,
   ColorUsage,
   ColorUsageDto,
+  MaterialCount,
   SpendingPoint,
   SpendingPointDto,
   Summary,
@@ -47,6 +48,11 @@ export class StatsApi {
     return this.http
       .get<ColorUsageDto[]>(`${this.base}/colors`)
       .pipe(map((d) => d.map(toColorUsage)));
+  }
+
+  /** Material distribution across all garments — no date filter. */
+  materials(): Observable<MaterialCount[]> {
+    return this.http.get<MaterialCount[]>(`${this.base}/materials`);
   }
 
   spendingByCategory(range?: DateRange): Observable<CategorySpending[]> {

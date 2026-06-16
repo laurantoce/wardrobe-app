@@ -7,6 +7,7 @@ from app.schemas import (
     CategoryColorCount,
     CategorySpending,
     ColorUsage,
+    MaterialCount,
     SpendingPoint,
     WardrobeSummary,
 )
@@ -52,6 +53,12 @@ class StatsService:
         return [
             ColorUsage(color_name=label, color_hex=hex_, garment_count=count)
             for label, hex_, count in self.stats.color_usage(user_id)
+        ]
+
+    def materials(self, user_id: int) -> list[MaterialCount]:
+        return [
+            MaterialCount(material=mat, count=count)
+            for mat, count in self.stats.material_counts(user_id)
         ]
 
     def spending_over_time(

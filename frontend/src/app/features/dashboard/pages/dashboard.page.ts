@@ -5,12 +5,27 @@ import { CardComponent } from '../../../shared/ui/card.component';
 import { CategoryColorCount } from '../data/stats.models';
 import { RangePreset, StatsStore } from '../state/stats.store';
 
+/** Curated display colors for each material — distinct enough to read as a palette. */
+const MATERIAL_COLORS: Record<string, string> = {
+  cotton:    '#d4c5a9',
+  linen:     '#e0d2b4',
+  wool:      '#b8956b',
+  silk:      '#e4c8d8',
+  polyester: '#96b4cc',
+  denim:     '#4a6fa5',
+  leather:   '#8b5e3c',
+  cashmere:  '#c9a882',
+  nylon:     '#9eb8d0',
+  other:     '#c0bbb5',
+};
+
 const CATEGORY_LABELS: Record<string, string> = {
   top: 'Tops',
   bottom: 'Bottoms',
   shoes: 'Shoes',
   outerwear: 'Outerwear',
   dress: 'Dresses',
+  swimwear: 'Swimwear',
   accessory: 'Accessories',
   underwear: 'Underwear',
   other: 'Other',
@@ -44,11 +59,13 @@ const NO_COLOR = '#cbd5e1';
         </ui-card>
       </div>
 
-      <!-- Category stacked bars + color palette -->
+      <!-- Category stacked bars + color palette (colors card hidden when no data) -->
       <div class="mb-8 grid gap-4 lg:grid-cols-3">
 
-        <!-- Stacked bars: bar length = relative category size, fill = color breakdown -->
-        <ui-card class="p-5 lg:col-span-2">
+        <ui-card
+          class="p-5"
+          [class]="store.colors().length > 0 ? 'lg:col-span-2' : 'lg:col-span-3'"
+        >
           <h2 class="mb-4 text-sm font-semibold">By category</h2>
           @if (s.categoryBreakdown.length === 0) {
             <p class="text-sm text-muted">No items yet.</p>
@@ -81,12 +98,11 @@ const NO_COLOR = '#cbd5e1';
           }
         </ui-card>
 
-        <!-- Color palette strip + legend -->
+        <!-- Color palette — only rendered when colors exist (AI fills them via URL import) -->
+        @if (store.colors().length > 0) {
         <ui-card class="p-5">
           <h2 class="mb-4 text-sm font-semibold">Colors</h2>
-          @if (store.colors().length === 0) {
-            <p class="text-sm text-muted">No colors recorded.</p>
-          } @else {
+          @if (true) {
             <!-- Proportional color strip -->
             <div class="mb-4 flex h-8 overflow-hidden rounded-lg">
               @for (col of store.colors(); track col.colorName) {
@@ -116,7 +132,40 @@ const NO_COLOR = '#cbd5e1';
             </div>
           }
         </ui-card>
+        }
       </div>
+
+      <!-- Material distribution strip -->
+      @if (store.materials().length > 0) {
+        <ui-card class="mb-8 p-5">
+          <h2 class="mb-4 text-sm font-semibold">Materials</h2>
+          <div class="mb-4 flex h-7 overflow-hidden rounded-lg">
+            @for (m of store.materials(); track m.material) {
+              <div
+                class="h-full shrink-0 [box-shadow:inset_0_0_0_1px_#0000001a]"
+                [style.flex]="m.count"
+                [style.background-color]="materialColor(m.material)"
+                [title]="m.material + ': ' + m.count"
+              ></div>
+            }
+          </div>
+          <div class="flex flex-wrap gap-x-5 gap-y-1.5">
+            @for (m of store.materials(); track m.material) {
+              <div class="flex items-center gap-2 text-sm">
+                <span
+                  class="h-3 w-3 shrink-0 rounded-full border border-line [box-shadow:inset_0_0_0_1px_#0000001a]"
+                  [style.background-color]="materialColor(m.material)"
+                ></span>
+                <span class="capitalize text-muted">{{ m.material }}</span>
+                <span class="font-medium">{{ m.count }}</span>
+                <span class="text-faint">
+                  {{ pct(m.count, store.summary()?.totalGarments ?? 0) | number: '1.0-0' }}%
+                </span>
+              </div>
+            }
+          </div>
+        </ui-card>
+      }
     }
 
     <!-- ── Spending section ───────────────────────────────────────── -->
@@ -242,6 +291,10 @@ export class DashboardPage {
 
   protected categoryLabel(cat: string): string {
     return CATEGORY_LABELS[cat] ?? cat;
+  }
+
+  protected materialColor(material: string): string {
+    return MATERIAL_COLORS[material] ?? '#c0bbb5';
   }
 
   protected colorLabel(c: CategoryColorCount): string {

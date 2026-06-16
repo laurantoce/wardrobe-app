@@ -11,10 +11,10 @@ from app.dependencies import CurrentUser, StatsServiceDep
 from app.schemas import (
     CategorySpending,
     ColorUsage,
+    MaterialCount,
     SpendingPoint,
     WardrobeSummary,
 )
-# CategoryCount is embedded in WardrobeSummary — no direct import needed
 
 router = APIRouter(prefix="/stats", tags=["stats"])
 
@@ -39,6 +39,11 @@ def spending_by_category(
 @router.get("/colors", response_model=list[ColorUsage])
 def color_usage(user: CurrentUser, service: StatsServiceDep):
     return service.colors(user.id)
+
+
+@router.get("/materials", response_model=list[MaterialCount])
+def material_breakdown(user: CurrentUser, service: StatsServiceDep):
+    return service.materials(user.id)
 
 
 @router.get("/spending-over-time", response_model=list[SpendingPoint])

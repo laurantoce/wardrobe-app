@@ -11,6 +11,9 @@ export interface Garment {
   imageUrl: string | null;
   sourceUrl: string | null;
   notes: string | null;
+  occasion: string | null;
+  material: MaterialEntry[] | null;
+  subType: string | null;
   createdAt: string;
 }
 
@@ -27,6 +30,9 @@ export interface GarmentDto {
   image_url: string | null;
   source_url: string | null;
   notes: string | null;
+  occasion: string | null;
+  material: MaterialEntry[] | null;
+  sub_type: string | null;
   created_at: string;
 }
 
@@ -42,7 +48,24 @@ export interface GarmentInput {
   imageUrl?: string | null;
   sourceUrl?: string | null;
   notes?: string | null;
+  occasion?: string | null;
+  material?: MaterialEntry[] | null;
+  subType?: string | null;
 }
+
+export interface MaterialEntry {
+  material: string;
+  pct: number | null; // percentage 0–100; null = blend ratio not specified
+}
+
+export const OCCASIONS = [
+  'casual', 'work', 'formal', 'sport', 'beach', 'travel', 'lounge',
+] as const;
+
+export const MATERIALS = [
+  'cotton', 'linen', 'wool', 'silk', 'polyester', 'denim',
+  'leather', 'cashmere', 'nylon', 'other',
+] as const;
 
 export const GARMENT_CATEGORIES = [
   'top',
@@ -50,6 +73,7 @@ export const GARMENT_CATEGORIES = [
   'shoes',
   'outerwear',
   'dress',
+  'swimwear',
   'accessory',
   'underwear',
   'other',
@@ -68,6 +92,9 @@ export function toGarment(d: GarmentDto): Garment {
     imageUrl: d.image_url,
     sourceUrl: d.source_url,
     notes: d.notes,
+    occasion: d.occasion,
+    material: d.material,
+    subType: d.sub_type,
     createdAt: d.created_at,
   };
 }
@@ -86,5 +113,8 @@ export function toGarmentPayload(i: Partial<GarmentInput>): Record<string, unkno
   if (i.imageUrl !== undefined) out['image_url'] = i.imageUrl || null;
   if (i.sourceUrl !== undefined) out['source_url'] = i.sourceUrl || null;
   if (i.notes !== undefined) out['notes'] = i.notes || null;
+  if (i.occasion !== undefined) out['occasion'] = i.occasion || null;
+  if (i.material !== undefined) out['material'] = i.material?.length ? i.material : null;
+  if (i.subType !== undefined) out['sub_type'] = i.subType || null;
   return out;
 }

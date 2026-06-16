@@ -5,6 +5,7 @@ from app.schemas.stats import (
     CategoryColorCount,
     CategorySpending,
     ColorUsage,
+    MaterialCount,
     SpendingPoint,
     WardrobeSummary,
 )
@@ -21,5 +22,6 @@ __all__ = [
     "CategoryColorCount",
     "CategorySpending",
     "ColorUsage",
+    "MaterialCount",
     "SpendingPoint",
 ]

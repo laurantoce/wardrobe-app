@@ -28,6 +28,11 @@ export interface ColorUsage {
   garmentCount: number;
 }
 
+export interface MaterialCount {
+  material: string;
+  count: number;
+}
+
 export interface SpendingPoint {
   period: string; // ISO date (bucket start)
   totalSpent: number;
@@ -98,3 +103,7 @@ export function toSpendingPoint(d: SpendingPointDto): SpendingPoint {
 }
 
 export type { SummaryDto, CategorySpendingDto, ColorUsageDto, SpendingPointDto };
+
+export function toMaterialCount(d: MaterialCount): MaterialCount {
+  return d; // no snake_case conversion needed
+}

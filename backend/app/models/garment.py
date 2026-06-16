@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date, DateTime, ForeignKey, Numeric, String, Text, func
+from sqlalchemy import Date, DateTime, ForeignKey, JSON, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -45,6 +45,15 @@ class Garment(Base):
     source_url: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Examples: casual, work, formal, sport, beach, travel, lounge
+    occasion: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
+    # JSON array — e.g. ["cotton", "linen"] (primary material first)
+    material: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+
+    # Subtype within the category — e.g. "t-shirt", "sneakers", "blazer"
+    sub_type: Mapped[str | None] = mapped_column(String(80), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

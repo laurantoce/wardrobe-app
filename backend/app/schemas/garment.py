@@ -4,6 +4,11 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class MaterialEntry(BaseModel):
+    material: str
+    pct: int | None = None  # percentage 0-100; None means unspecified blend ratio
+
+
 class GarmentBase(BaseModel):
     name: str = Field(max_length=120)
     category: str = Field(max_length=50)
@@ -15,6 +20,9 @@ class GarmentBase(BaseModel):
     image_url: str | None = None
     source_url: str | None = None
     notes: str | None = None
+    occasion: str | None = Field(default=None, max_length=50)
+    material: list[MaterialEntry] | None = None
+    sub_type: str | None = Field(default=None, max_length=80)
 
 
 class GarmentCreate(GarmentBase):
@@ -34,6 +42,9 @@ class GarmentUpdate(BaseModel):
     image_url: str | None = None
     source_url: str | None = None
     notes: str | None = None
+    occasion: str | None = Field(default=None, max_length=50)
+    material: list[MaterialEntry] | None = None
+    sub_type: str | None = Field(default=None, max_length=80)
 
 
 class GarmentRead(GarmentBase):

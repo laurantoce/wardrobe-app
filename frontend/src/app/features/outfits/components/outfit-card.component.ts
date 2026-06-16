@@ -33,7 +33,7 @@ import { Outfit } from '../data/outfit.models';
         @for (g of outfit().garments.slice(0, 6); track g.id) {
           <span
             class="h-5 w-5 rounded-full border border-line [box-shadow:inset_0_0_0_1px_#0000001a]"
-            [style.background-color]="g.colorHex || '#ffffff'"
+            [style.background-color]="g.colorHex || '#c8c4be'"
             [title]="g.name"
           ></span>
         }

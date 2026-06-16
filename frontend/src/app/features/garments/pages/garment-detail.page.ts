@@ -7,7 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { CurrencyPipe, DatePipe, TitleCasePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 
 import { ButtonDirective } from '../../../shared/ui/button.directive';
 import { CardComponent } from '../../../shared/ui/card.component';
@@ -30,7 +30,6 @@ import { Garment, GarmentInput } from '../data/garment.models';
     GarmentFormComponent,
     CurrencyPipe,
     DatePipe,
-    TitleCasePipe,
   ],
   template: `
     <a
@@ -49,12 +48,14 @@ import { Garment, GarmentInput } from '../data/garment.models';
         <div class="flex items-center gap-3">
           <span
             class="h-8 w-8 shrink-0 rounded-full border border-line [box-shadow:inset_0_0_0_1px_#0000001a]"
-            [style.background-color]="g.colorHex || '#ffffff'"
+            [style.background-color]="g.colorHex || '#c8c4be'"
           ></span>
           <div>
             <h1 class="text-2xl font-semibold tracking-tight">{{ g.name }}</h1>
             <p class="text-sm text-muted">
-              {{ g.category | titlecase }}{{ g.brand ? ' · ' + g.brand : '' }}
+              <span class="capitalize">{{ g.category }}</span>
+              @if (g.subType) { · <span class="capitalize">{{ g.subType }}</span> }
+              @if (g.brand) { · {{ g.brand }} }
             </p>
           </div>
         </div>
@@ -66,7 +67,7 @@ import { Garment, GarmentInput } from '../data/garment.models';
         </div>
       </header>
 
-      <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <ui-card class="p-4">
           <p class="text-xs text-muted">Price</p>
           <p class="mt-1 text-lg font-semibold">
@@ -80,8 +81,25 @@ import { Garment, GarmentInput } from '../data/garment.models';
           </p>
         </ui-card>
         <ui-card class="p-4">
-          <p class="text-xs text-muted">Category</p>
-          <p class="mt-1 text-lg font-semibold">{{ g.category | titlecase }}</p>
+          <p class="text-xs text-muted">Occasion</p>
+          <p class="mt-1 text-lg font-semibold capitalize">{{ g.occasion ?? '—' }}</p>
+        </ui-card>
+        <ui-card class="p-4">
+          <p class="text-xs text-muted">Material</p>
+          @if (g.material?.length) {
+            <div class="mt-1 flex flex-col gap-0.5">
+              @for (e of g.material!; track e.material) {
+                <p class="text-sm font-semibold capitalize">
+                  {{ e.material }}
+                  @if (e.pct != null) {
+                    <span class="font-normal text-muted">{{ e.pct }}%</span>
+                  }
+                </p>
+              }
+            </div>
+          } @else {
+            <p class="mt-1 text-lg font-semibold">—</p>
+          }
         </ui-card>
       </div>
 
@@ -108,7 +126,6 @@ export class GarmentDetailPage {
   private readonly api = inject(GarmentApi);
   private readonly router = inject(Router);
 
-  /** Bound from the :id route param (withComponentInputBinding). */
   readonly id = input.required<string>();
 
   protected readonly garment = signal<Garment | null>(null);

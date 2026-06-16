@@ -4,7 +4,7 @@ import { firstValueFrom, forkJoin } from 'rxjs';
 
 import { ApiError } from '../../../core/error.interceptor';
 import { DateRange, Period, StatsApi } from '../data/stats-api.service';
-import { CategorySpending, ColorUsage, SpendingPoint, Summary } from '../data/stats.models';
+import { CategorySpending, ColorUsage, MaterialCount, SpendingPoint, Summary } from '../data/stats.models';
 
 export type RangePreset = 'week' | 'month' | 'year' | 'all';
 
@@ -29,6 +29,7 @@ interface StatsState {
   // Wardrobe snapshot — always current, no date filter
   summary: Summary | null;
   colors: ColorUsage[];
+  materials: MaterialCount[];
   // Spending — date-filtered, reloads on preset change
   spending: CategorySpending[];
   spendingSeries: SpendingPoint[];
@@ -42,6 +43,7 @@ interface StatsState {
 const initial: StatsState = {
   summary: null,
   colors: [],
+  materials: [],
   spending: [],
   spendingSeries: [],
   preset: 'all',
@@ -91,9 +93,9 @@ export const StatsStore = signalStore(
         patchState(store, { snapshotLoading: true, spendingLoading: true, error: null });
         try {
           await Promise.all([
-            firstValueFrom(forkJoin({ summary: api.summary(), colors: api.colors() })).then((d) =>
-              patchState(store, { ...d, snapshotLoading: false }),
-            ),
+            firstValueFrom(
+              forkJoin({ summary: api.summary(), colors: api.colors(), materials: api.materials() }),
+            ).then((d) => patchState(store, { ...d, snapshotLoading: false })),
             loadSpending(),
           ]);
         } catch (e) {

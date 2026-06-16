@@ -2,7 +2,7 @@
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import Date, Row, cast, func, select
+from sqlalchemy import Date, Row, cast, func, select, text
 from sqlalchemy.orm import Session
 
 from app.models import Garment
@@ -80,6 +80,20 @@ class StatsRepository:
             .group_by(Garment.category, Garment.color_name, Garment.color_hex)
             .order_by(Garment.category, count.desc())
         ).all()
+
+    def material_counts(self, user_id: int) -> list:
+        # Each element is {material, pct}; extract the name and count per garment.
+        stmt = text("""
+            SELECT mat->>'material' AS material, COUNT(*) AS count
+            FROM garments,
+                 json_array_elements(material) AS mat
+            WHERE user_id = :user_id
+              AND material IS NOT NULL
+              AND json_array_length(material) > 0
+            GROUP BY mat->>'material'
+            ORDER BY count DESC
+        """)
+        return self.db.execute(stmt, {"user_id": user_id}).fetchall()
 
     def spending_over_time(self, user_id: int, period: Period, start, end) -> list[Row]:
         bucket = cast(func.date_trunc(period, Garment.purchase_date), Date)
