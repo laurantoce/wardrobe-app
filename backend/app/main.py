@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.exceptions import NotFoundError, ValidationError
-from app.routers import garments, outfits, stats, washes, wears
+from app.routers import garments, outfits, stats
 
 app = FastAPI(
     title="Wardrobe App API",
@@ -41,6 +41,4 @@ def health_check():
 
 app.include_router(garments.router)
 app.include_router(outfits.router)
-app.include_router(wears.router)
-app.include_router(washes.router)
 app.include_router(stats.router)

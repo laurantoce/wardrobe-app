@@ -4,22 +4,16 @@ import { map, Observable } from 'rxjs';
 
 import { API_BASE } from '../../../core/api';
 import {
-  ActivityPoint,
-  ActivityPointDto,
   CategorySpending,
   CategorySpendingDto,
   ColorUsage,
   ColorUsageDto,
-  GarmentUsage,
-  GarmentUsageDto,
   SpendingPoint,
   SpendingPointDto,
   Summary,
   SummaryDto,
-  toActivityPoint,
   toCategorySpending,
   toColorUsage,
-  toGarmentUsage,
   toSpendingPoint,
   toSummary,
 } from './stats.models';
@@ -63,35 +57,11 @@ export class StatsApi {
       .pipe(map((d) => d.map(toColorUsage)));
   }
 
-  mostWorn(limit = 5, range?: DateRange): Observable<GarmentUsage[]> {
-    return this.http
-      .get<GarmentUsageDto[]>(`${this.base}/most-worn`, {
-        params: rangeParams(range).set('limit', limit),
-      })
-      .pipe(map((d) => d.map(toGarmentUsage)));
-  }
-
-  mostWashed(limit = 5, range?: DateRange): Observable<GarmentUsage[]> {
-    return this.http
-      .get<GarmentUsageDto[]>(`${this.base}/most-washed`, {
-        params: rangeParams(range).set('limit', limit),
-      })
-      .pipe(map((d) => d.map(toGarmentUsage)));
-  }
-
   spendingOverTime(period: Period, range?: DateRange): Observable<SpendingPoint[]> {
     return this.http
       .get<SpendingPointDto[]>(`${this.base}/spending-over-time`, {
         params: rangeParams(range).set('period', period),
       })
       .pipe(map((d) => d.map(toSpendingPoint)));
-  }
-
-  activityOverTime(period: Period, range?: DateRange): Observable<ActivityPoint[]> {
-    return this.http
-      .get<ActivityPointDto[]>(`${this.base}/activity-over-time`, {
-        params: rangeParams(range).set('period', period),
-      })
-      .pipe(map((d) => d.map(toActivityPoint)));
   }
 }

@@ -39,13 +39,7 @@ import { Garment } from '../data/garment.models';
         </div>
       </button>
 
-      <div class="flex items-center gap-1 border-t border-line px-2 py-2">
-        <button appBtn variant="ghost" size="sm" (click)="wore.emit()">
-          <ui-icon name="shirt" [size]="15" /> Wore
-        </button>
-        <button appBtn variant="ghost" size="sm" (click)="washed.emit()">
-          <ui-icon name="droplet" [size]="15" /> Washed
-        </button>
+      <div class="flex items-center border-t border-line px-2 py-2">
         <button
           appBtn
           variant="ghost"
@@ -63,7 +57,5 @@ import { Garment } from '../data/garment.models';
 export class GarmentCardComponent {
   readonly garment = input.required<Garment>();
   readonly open = output<void>();
-  readonly wore = output<void>();
-  readonly washed = output<void>();
   readonly remove = output<void>();
 }

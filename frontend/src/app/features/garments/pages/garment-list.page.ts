@@ -1,13 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { TitleCasePipe } from '@angular/common';
-import { Observable } from 'rxjs';
 
 import { ButtonDirective } from '../../../shared/ui/button.directive';
 import { IconComponent } from '../../../shared/ui/icon.component';
 import { SheetComponent } from '../../../shared/ui/sheet.component';
 import { ApiError } from '../../../core/error.interceptor';
-import { ActivityApi } from '../../activity/data/activity-api.service';
 import { GarmentCardComponent } from '../components/garment-card.component';
 import { GarmentFormComponent } from '../components/garment-form.component';
 import { GARMENT_CATEGORIES, Garment, GarmentInput } from '../data/garment.models';
@@ -70,8 +68,6 @@ import { GarmentStore } from '../state/garment.store';
           <app-garment-card
             [garment]="g"
             (open)="goToDetail(g)"
-            (wore)="logWear(g)"
-            (washed)="logWash(g)"
             (remove)="remove(g)"
           />
         }
@@ -84,32 +80,22 @@ import { GarmentStore } from '../state/garment.store';
       }
     </ui-sheet>
 
-    @if (toast(); as t) {
+    @if (toast()) {
       <div
         class="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-lg bg-ink px-4 py-2 text-sm text-white shadow-lg"
       >
-        <span>{{ t.text }}</span>
-        @if (t.undo; as undoFn) {
-          <button
-            type="button"
-            class="font-semibold text-white underline underline-offset-2 hover:opacity-80"
-            (click)="undoFn()"
-          >
-            Undo
-          </button>
-        }
+        <span>{{ toast() }}</span>
       </div>
     }
   `,
 })
 export class GarmentListPage {
   protected readonly store = inject(GarmentStore);
-  private readonly activity = inject(ActivityApi);
   private readonly router = inject(Router);
 
   protected readonly categories = ['all', ...GARMENT_CATEGORIES];
   protected readonly sheetOpen = signal(false);
-  protected readonly toast = signal<{ text: string; undo?: () => void } | null>(null);
+  protected readonly toast = signal<string | null>(null);
 
   constructor() {
     void this.store.load();
@@ -142,7 +128,7 @@ export class GarmentListPage {
   }
 
   protected async remove(g: Garment): Promise<void> {
-    if (!confirm(`Delete "${g.name}"? This also removes its wear/wash history.`)) return;
+    if (!confirm(`Delete "${g.name}"?`)) return;
     try {
       await this.store.remove(g.id);
       this.flash('Item deleted');
@@ -151,38 +137,8 @@ export class GarmentListPage {
     }
   }
 
-  protected logWear(g: Garment): void {
-    this.activity.logWear(g.id).subscribe({
-      next: (w) =>
-        this.flash(`Logged a wear for ${g.name}`, () =>
-          this.applyUndo(this.activity.deleteWear(w.id), 'Wear removed'),
-        ),
-      error: (e: ApiError) => this.flash(e.message),
-    });
-  }
-
-  protected logWash(g: Garment): void {
-    this.activity.logWash(g.id).subscribe({
-      next: (w) =>
-        this.flash(`Logged a wash for ${g.name}`, () =>
-          this.applyUndo(this.activity.deleteWash(w.id), 'Wash removed'),
-        ),
-      error: (e: ApiError) => this.flash(e.message),
-    });
-  }
-
-  /** Run the undo request, then confirm. */
-  private applyUndo(request: Observable<void>, confirmText: string): void {
-    this.toast.set(null);
-    request.subscribe({
-      next: () => this.flash(confirmText),
-      error: (e: ApiError) => this.flash(e.message),
-    });
-  }
-
-  private flash(text: string, undo?: () => void): void {
-    this.toast.set({ text, undo });
-    // Give a longer window when an Undo action is offered.
-    setTimeout(() => this.toast.set(null), undo ? 5000 : 2500);
+  private flash(text: string): void {
+    this.toast.set(text);
+    setTimeout(() => this.toast.set(null), 2500);
   }
 }

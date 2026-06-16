@@ -60,14 +60,3 @@ class Garment(Base):
         back_populates="garments",
     )
 
-    wears = relationship(
-        "Wear",
-        back_populates="garment",
-        cascade="all, delete-orphan",
-    )
-
-    washes = relationship(
-        "Wash",
-        back_populates="garment",
-        cascade="all, delete-orphan",
-    )

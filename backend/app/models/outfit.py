@@ -57,8 +57,3 @@ class Outfit(Base):
         back_populates="outfits",
     )
 
-    wears = relationship(
-        "Wear",
-        back_populates="outfit",
-        cascade="all, delete-orphan",
-    )

@@ -1,3 +1,3 @@
-from app.routers import garments, outfits, stats, washes, wears
+from app.routers import garments, outfits, stats
 
-__all__ = ["garments", "outfits", "wears", "washes", "stats"]
+__all__ = ["garments", "outfits", "stats"]

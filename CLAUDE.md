@@ -5,13 +5,16 @@
 
 ## What we're building
 
-A wardrobe management app. A user catalogs their clothes and tracks usage so they can
-answer questions like:
+A wardrobe management app focused on outfit curation and AI-powered suggestions. A user
+catalogs their clothes and outfits, then gets AI help to make better use of what they own:
 
 - How much money have I spent on clothes? (total, by category, over time)
-- How many times have I worn / washed a given garment? (and cost-per-wear)
 - Which colors do I wear most?
-- What outfits do I have and how often do I wear them?
+- What outfits do I have?
+- **AI:** Suggest outfits from my wardrobe for a given occasion, season, or vibe
+
+**Note:** Wear/wash tracking has been intentionally removed — the focus is on the wardrobe
+as a catalog and on AI-driven outfit suggestions.
 
 **Future:** AI integration (Anthropic) for outfit suggestions and insights. Image
 hosting via Cloudinary. Neither is wired up yet — keys are stubbed in config.
@@ -36,12 +39,13 @@ backend/
     database.py      # engine, SessionLocal, Base, get_db()
     dependencies.py  # DI wiring: Session -> repositories -> services; CurrentUser (STUBBED)
     exceptions.py    # domain errors (NotFoundError, ValidationError)
-    models/          # SQLAlchemy models: user, garment, outfit, wear, wash
+    models/          # SQLAlchemy models: user, garment, outfit
     schemas/         # Pydantic request/response models
     repositories/    # persistence layer (one repo per aggregate + a generic base)
-    services/        # business rules + orchestration (the use-case layer)
+    services/        # business rules + orchestration
     routers/         # thin HTTP adapters: parse request -> call service -> return
   alembic/           # migrations
+  Dockerfile
   requirements.txt
   .env.example
 frontend/
@@ -51,13 +55,14 @@ frontend/
     features/
       garments/      # data/ (api + models + mappers), state/ (signalStore), components/, pages/
       outfits/       # same layered shape
-      activity/      # wear/wash logging (data/ + api)
       dashboard/     # stats: data/, state/, pages/
     app.config.ts    # providers: zoneless, router (+input binding), httpClient + interceptor
     app.routes.ts    # lazy loadComponent routes
     app.ts           # shell: slim sidebar + <router-outlet>
-  proxy.conf.json    # dev: /api -> http://localhost:8000 (strips /api)
-docker-compose.yml   # Postgres only, for now
+  proxy.conf.json         # dev (local): /api -> http://localhost:8000
+  proxy.conf.docker.json  # dev (Docker): /api -> http://backend:8000
+  Dockerfile
+docker-compose.yml   # Postgres + backend + frontend
 ```
 
 ### Backend architecture (layered)
@@ -91,9 +96,8 @@ Data flow: **component → store (signals) → API service → HTTP**.
   return domain models; nothing above this layer sees snake_case.
 - **State** (`features/*/state/`): `@ngrx/signals` `signalStore` per feature, with
   `withEntities` for garment/outfit collections, `withComputed` for derived values
-  (totalValue, cost-per-wear inputs), `withMethods` for commands. Components read store
-  signals and call store methods — they never call API services directly (the fire-and-
-  forget wear/wash logging via `ActivityApi` is the one intentional exception).
+  (totalValue), `withMethods` for commands. Components read store signals and call store
+  methods — they never call API services directly.
 - **Presentation**: smart page components (`pages/`) inject stores; dumb components
   (`components/`, `shared/ui/`) use signal `input()`/`output()` and hold no state.
 - **UI**: Tailwind v4 with design tokens in `src/styles.css` under `@theme` ("warm
@@ -110,8 +114,6 @@ Data flow: **component → store (signals) → API service → HTTP**.
   (curated-palette name, drives color analytics), `brand`, `purchase_date`,
   `purchase_price`, `image_url`, `source_url`, `notes`.
 - **Outfit** — a named set of garments (M2M via `outfit_garments`). `season`, `occasion`.
-- **Wear** — a usage event. Linked to a garment and/or an outfit, with `worn_date`.
-- **Wash** — a wash event for a garment, with `washed_date` and `method`.
 
 All child rows carry `user_id` (denormalized for simple per-user scoping/queries) and
 cascade-delete with the user.
@@ -134,25 +136,42 @@ stays stubbed until we implement it.
 
 ## Running locally
 
+### Option 1 — full Docker stack (recommended)
+
 ```bash
-docker compose up -d postgres          # starts Postgres on localhost:5433
+docker compose up --build
+```
+
+- Frontend → http://localhost:4200
+- Backend API → http://localhost:8000/docs
+- DB migrations run automatically on backend startup.
+- Source is mounted as a volume so hot-reload works for the backend (uvicorn --reload).
+  Frontend hot-reload via `--poll 2000` (slower than native but works on Docker/Windows).
+
+To tear down and wipe the DB:
+```bash
+docker compose down -v
+```
+
+### Option 2 — local dev (faster frontend HMR)
+
+```bash
+# Terminal 1 — DB only
+docker compose up -d postgres
+
+# Terminal 2 — backend
 cd backend
 python -m venv .venv && .venv\Scripts\activate   # Windows
 pip install -r requirements.txt
-# create backend/.env from .env.example first (DATABASE_URL must use port 5433)
+# copy .env.example to .env and edit (DATABASE_URL must use port 5433)
 alembic upgrade head
-uvicorn app.main:app --reload   # run from backend/, NOT backend/app/  -> http://localhost:8000/docs
-```
+uvicorn app.main:app --reload   # run from backend/, NOT backend/app/
 
-Frontend (separate terminal; needs Node 20.19+/22.12+):
-
-```bash
+# Terminal 3 — frontend
 cd frontend
 npm install
-npm start            # ng serve on http://localhost:4200, proxies /api -> :8000
+npm start   # ng serve on http://localhost:4200, proxies /api -> :8000
 ```
-
-Start the backend first so the dev proxy has something to talk to. See `frontend/README.md`.
 
 ## Conventions
 
@@ -167,18 +186,19 @@ Start the backend first so the dev proxy has something to talk to. See `frontend
 
 ## Roadmap / TODO
 
+- [ ] **Anthropic AI outfit suggestions** — core feature: given occasion/season/vibe,
+      suggest outfits from the user's wardrobe using the Claude API
+- [ ] "Paste a product URL → AI fills category/color/name" (vision AI, reuses Anthropic)
+- [ ] Cloudinary image upload for garments (frontend has `imageUrl`/`sourceUrl` fields ready)
 - [ ] **Keycloak auth** (Docker service + OIDC; replace `get_current_user`, add
       interceptor/guards/login in Angular) — chosen direction, not built yet
-- [ ] Cloudinary image upload for garments (frontend has `imageUrl`/`sourceUrl` fields ready)
-- [ ] Anthropic-powered outfit suggestions; also "paste a product URL → vision AI fills
-      category/color/name" (more robust than HTML scraping; reuses Cloudinary + Anthropic)
-- [x] Angular frontend — Dashboard / Items / Outfits + wear-wash logging
-- [x] Temporal analytics — date-range presets + spending/wear/wash over-time charts
+- [x] Angular frontend — Dashboard / Items / Outfits
+- [x] Temporal analytics — date-range presets + spending over-time charts
 - [x] Smart color picker — curated palette (`color_name`) + color-family analytics
 - [x] Mobile responsive — collapsible sidebar drawer + responsive layout
-- [ ] Wardrobe planning (calendar of future-dated wears/outfits, packing lists)
-- [ ] Frontend polish: edit/detail for outfits, richer (line) charts, dark mode
+- [x] Full Docker Compose stack (postgres + backend + frontend, one command)
+- [ ] Outfit detail/edit page
+- [ ] Richer charts (line charts), dark mode
 - [ ] "Build an app": PWA (cheapest) or Capacitor wrapper — clean API + OIDC make it easy
-- [ ] Backend Dockerfile + add API service to compose
 - [ ] CI/CD pipeline (lint, test, build image, deploy)
 - [ ] Tests — none yet (backend pytest; frontend has no specs)

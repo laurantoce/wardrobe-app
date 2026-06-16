@@ -5,10 +5,8 @@ import { firstValueFrom, forkJoin } from 'rxjs';
 import { ApiError } from '../../../core/error.interceptor';
 import { DateRange, Period, StatsApi } from '../data/stats-api.service';
 import {
-  ActivityPoint,
   CategorySpending,
   ColorUsage,
-  GarmentUsage,
   SpendingPoint,
   Summary,
 } from '../data/stats.models';
@@ -36,9 +34,7 @@ interface StatsState {
   summary: Summary | null;
   spending: CategorySpending[];
   colors: ColorUsage[];
-  mostWorn: GarmentUsage[];
   spendingSeries: SpendingPoint[];
-  activitySeries: ActivityPoint[];
   preset: RangePreset;
   loading: boolean;
   error: string | null;
@@ -48,9 +44,7 @@ const initial: StatsState = {
   summary: null,
   spending: [],
   colors: [],
-  mostWorn: [],
   spendingSeries: [],
-  activitySeries: [],
   preset: 'all',
   loading: false,
   error: null,
@@ -66,11 +60,6 @@ export const StatsStore = signalStore(
     maxSeriesSpend: computed(() =>
       store.spendingSeries().reduce((m, p) => Math.max(m, p.totalSpent), 0),
     ),
-    maxActivity: computed(() =>
-      store
-        .activitySeries()
-        .reduce((m, p) => Math.max(m, p.wears, p.washes), 0),
-    ),
   })),
   withMethods((store, api = inject(StatsApi)) => {
     async function load(): Promise<void> {
@@ -84,9 +73,7 @@ export const StatsStore = signalStore(
             summary: api.summary(range),
             spending: api.spendingByCategory(range),
             colors: api.colors(),
-            mostWorn: api.mostWorn(5, range),
             spendingSeries: api.spendingOverTime(period, range),
-            activitySeries: api.activityOverTime(period, range),
           }),
         );
         patchState(store, { ...data, loading: false });

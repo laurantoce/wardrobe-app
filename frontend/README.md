@@ -3,12 +3,20 @@
 Angular 20 SPA: standalone components, **zoneless** change detection, signals,
 `@ngrx/signals` state, Tailwind v4. Talks to the FastAPI backend.
 
-## Prerequisites
+## Running (Docker — recommended)
 
-- Node 20.19+ or 22.12+ (matches Angular 20's engines)
-- The backend running on `http://localhost:8000` (see `../backend/README.md`)
+From the **repo root**:
 
-## Setup & run
+```bash
+docker compose up --build
+```
+
+App: http://localhost:4200  
+Uses `proxy.conf.docker.json` to proxy `/api` → `http://backend:8000`.
+
+## Running locally
+
+Prerequisites: Node 20.19+ or 22.12+, backend running on `http://localhost:8000`.
 
 ```bash
 cd frontend
@@ -16,9 +24,8 @@ npm install
 npm start          # ng serve -> http://localhost:4200
 ```
 
-`npm start` runs the dev server with a proxy: requests to `/api/*` are forwarded to
-`http://localhost:8000` with the `/api` prefix stripped (see `proxy.conf.json`). Start the
-backend first, or API calls will fail.
+`npm start` runs `ng serve` with `proxy.conf.json`, which proxies `/api/*` to
+`http://localhost:8000` with the `/api` prefix stripped.
 
 ```bash
 npm run build      # production build into dist/
@@ -37,7 +44,6 @@ src/app/
       components/       # garment-card, garment-form        (dumb, signal in/out)
       pages/            # garment-list.page, garment-detail.page  (smart containers)
     outfits/            # same shape
-    activity/           # wear/wash logging (data + api only)
     dashboard/          # stats: data/, state/, pages/
   app.config.ts         # zoneless, router (+ input binding), httpClient + interceptor
   app.routes.ts         # lazy loadComponent routes
@@ -45,12 +51,18 @@ src/app/
 ```
 
 - **Layers**: dumb components and pages only talk to **stores**; stores call **API
-  services**; API services do HTTP + DTO mapping. (The fire-and-forget wear/wash logging
-  via `ActivityApi` is the one intentional shortcut.)
+  services**; API services do HTTP + DTO mapping.
 - **DTO mapping**: the backend uses snake_case and serializes money (`Decimal`) as
   **strings**. Each `data/*.models.ts` defines a `*Dto` (wire format) plus a camelCase
   domain model with `number` money, and mapper functions. Nothing above `data/` sees the
   wire format.
+
+## Proxy configs
+
+| File | Used by | Target |
+|------|---------|--------|
+| `proxy.conf.json` | `npm start` (local dev) | `http://localhost:8000` |
+| `proxy.conf.docker.json` | Frontend Dockerfile | `http://backend:8000` |
 
 ## Styling
 
@@ -58,15 +70,11 @@ Tailwind v4. Design tokens live in `src/styles.css` under `@theme` ("warm editor
 neutral", terracotta accent). Change `--color-accent` to restyle the whole app. Utilities
 like `bg-canvas`, `text-ink`, `border-line`, `bg-accent-soft` come from those tokens.
 
-Components are hand-rolled on Tailwind (+ Angular CDK where behavior is needed). We did
-**not** adopt Spartan UI — it was the original plan, but to avoid version-compat risk on
-an unattended build we stuck to plain Tailwind/CDK. Spartan components can be layered in
-later without disturbing this structure.
+Components are hand-rolled on Tailwind (+ Angular CDK where behavior is needed).
 
 ## Notes / TODO
 
 - No real auth yet — the backend treats every request as a single demo user. When JWT is
   added, wire a token interceptor in `core/` + route guards + a login page.
-- No unit tests yet (the generated `app.spec.ts` was removed when the shell changed).
-- Possible next steps: edit/detail for outfits, richer charts, dark mode, a collapsible
-  sidebar for small screens.
+- No unit tests yet.
+- Next: AI outfit suggestions, outfit detail/edit page, richer charts, dark mode.

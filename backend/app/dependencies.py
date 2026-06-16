@@ -15,15 +15,11 @@ from app.repositories import (
     OutfitRepository,
     StatsRepository,
     UserRepository,
-    WashRepository,
-    WearRepository,
 )
 from app.services import (
     GarmentService,
     OutfitService,
     StatsService,
-    WashService,
-    WearService,
 )
 
 DbSession = Annotated[Session, Depends(get_db)]
@@ -43,14 +39,6 @@ def get_garment_repository(db: DbSession) -> GarmentRepository:
 
 def get_outfit_repository(db: DbSession) -> OutfitRepository:
     return OutfitRepository(db)
-
-
-def get_wear_repository(db: DbSession) -> WearRepository:
-    return WearRepository(db)
-
-
-def get_wash_repository(db: DbSession) -> WashRepository:
-    return WashRepository(db)
 
 
 def get_stats_repository(db: DbSession) -> StatsRepository:
@@ -82,21 +70,6 @@ def get_outfit_service(
     return OutfitService(outfits, garments)
 
 
-def get_wear_service(
-    wears: Annotated[WearRepository, Depends(get_wear_repository)],
-    garments: Annotated[GarmentRepository, Depends(get_garment_repository)],
-    outfits: Annotated[OutfitRepository, Depends(get_outfit_repository)],
-) -> WearService:
-    return WearService(wears, garments, outfits)
-
-
-def get_wash_service(
-    washes: Annotated[WashRepository, Depends(get_wash_repository)],
-    garments: Annotated[GarmentRepository, Depends(get_garment_repository)],
-) -> WashService:
-    return WashService(washes, garments)
-
-
 def get_stats_service(
     stats: Annotated[StatsRepository, Depends(get_stats_repository)],
 ) -> StatsService:
@@ -105,6 +78,4 @@ def get_stats_service(
 
 GarmentServiceDep = Annotated[GarmentService, Depends(get_garment_service)]
 OutfitServiceDep = Annotated[OutfitService, Depends(get_outfit_service)]
-WearServiceDep = Annotated[WearService, Depends(get_wear_service)]
-WashServiceDep = Annotated[WashService, Depends(get_wash_service)]
 StatsServiceDep = Annotated[StatsService, Depends(get_stats_service)]

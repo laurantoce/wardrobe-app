@@ -32,14 +32,3 @@ class User(Base):
         cascade="all, delete-orphan",
     )
 
-    wears = relationship(
-        "Wear",
-        back_populates="user",
-        cascade="all, delete-orphan",
-    )
-
-    washes = relationship(
-        "Wash",
-        back_populates="user",
-        cascade="all, delete-orphan",
-    )
