@@ -71,6 +71,15 @@ class StatsRepository:
             .order_by(count.desc())
         ).all()
 
+    def category_counts(self, user_id: int) -> list[Row]:
+        count = func.count(Garment.id)
+        return self.db.execute(
+            select(Garment.category, count)
+            .where(Garment.user_id == user_id)
+            .group_by(Garment.category)
+            .order_by(count.desc())
+        ).all()
+
     def spending_over_time(self, user_id: int, period: Period, start, end) -> list[Row]:
         bucket = cast(func.date_trunc(period, Garment.purchase_date), Date)
         total = func.coalesce(func.sum(Garment.purchase_price), ZERO)

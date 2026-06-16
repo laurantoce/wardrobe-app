@@ -1,7 +1,12 @@
+export interface CategoryCount {
+  category: string;
+  count: number;
+}
+
 export interface Summary {
   totalGarments: number;
   totalOutfits: number;
-  totalSpent: number;
+  categoryCounts: CategoryCount[];
 }
 
 export interface CategorySpending {
@@ -21,10 +26,12 @@ export interface SpendingPoint {
   totalSpent: number;
 }
 
+// ── DTOs (wire format from backend) ────────────────────────────────────────
+
 interface SummaryDto {
   total_garments: number;
   total_outfits: number;
-  total_spent: string;
+  category_counts: Array<{ category: string; count: number }>;
 }
 interface CategorySpendingDto {
   category: string;
@@ -41,11 +48,13 @@ interface SpendingPointDto {
   total_spent: string;
 }
 
+// ── Mappers ─────────────────────────────────────────────────────────────────
+
 export function toSummary(d: SummaryDto): Summary {
   return {
     totalGarments: d.total_garments,
     totalOutfits: d.total_outfits,
-    totalSpent: Number(d.total_spent),
+    categoryCounts: d.category_counts,
   };
 }
 

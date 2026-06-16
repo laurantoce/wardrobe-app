@@ -3,6 +3,7 @@ from datetime import date
 from app.models import Garment, Outfit
 from app.repositories import StatsRepository
 from app.schemas import (
+    CategoryCount,
     CategorySpending,
     ColorUsage,
     SpendingPoint,
@@ -14,17 +15,14 @@ class StatsService:
     def __init__(self, stats: StatsRepository) -> None:
         self.stats = stats
 
-    def summary(
-        self, user_id: int, start: date | None = None, end: date | None = None
-    ) -> WardrobeSummary:
+    def summary(self, user_id: int) -> WardrobeSummary:
         return WardrobeSummary(
-            total_garments=self.stats.count_in_range(
-                Garment, Garment.purchase_date, user_id, start, end
-            )
-            if (start or end)
-            else self.stats.count_all(Garment, user_id),
+            total_garments=self.stats.count_all(Garment, user_id),
             total_outfits=self.stats.count_all(Outfit, user_id),
-            total_spent=self.stats.total_spent(user_id, start, end),
+            category_counts=[
+                CategoryCount(category=cat, count=count)
+                for cat, count in self.stats.category_counts(user_id)
+            ],
         )
 
     def spending_by_category(

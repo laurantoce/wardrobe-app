@@ -37,10 +37,16 @@ export class StatsApi {
   private readonly http = inject(HttpClient);
   private readonly base = `${API_BASE}/stats`;
 
-  summary(range?: DateRange): Observable<Summary> {
+  /** Wardrobe snapshot — always reflects current state, no date filter. */
+  summary(): Observable<Summary> {
+    return this.http.get<SummaryDto>(`${this.base}/summary`).pipe(map(toSummary));
+  }
+
+  /** Color distribution across all garments — no date filter. */
+  colors(): Observable<ColorUsage[]> {
     return this.http
-      .get<SummaryDto>(`${this.base}/summary`, { params: rangeParams(range) })
-      .pipe(map(toSummary));
+      .get<ColorUsageDto[]>(`${this.base}/colors`)
+      .pipe(map((d) => d.map(toColorUsage)));
   }
 
   spendingByCategory(range?: DateRange): Observable<CategorySpending[]> {
@@ -49,12 +55,6 @@ export class StatsApi {
         params: rangeParams(range),
       })
       .pipe(map((d) => d.map(toCategorySpending)));
-  }
-
-  colors(): Observable<ColorUsage[]> {
-    return this.http
-      .get<ColorUsageDto[]>(`${this.base}/colors`)
-      .pipe(map((d) => d.map(toColorUsage)));
   }
 
   spendingOverTime(period: Period, range?: DateRange): Observable<SpendingPoint[]> {

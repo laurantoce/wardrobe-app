@@ -4,10 +4,15 @@ from decimal import Decimal
 from pydantic import BaseModel
 
 
+class CategoryCount(BaseModel):
+    category: str
+    count: int
+
+
 class WardrobeSummary(BaseModel):
     total_garments: int
     total_outfits: int
-    total_spent: Decimal
+    category_counts: list[CategoryCount]
 
 
 class CategorySpending(BaseModel):

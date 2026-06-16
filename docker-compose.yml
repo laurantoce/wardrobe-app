@@ -10,7 +10,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - wardrobe_postgres_data:/var/lib/postgresql/data
+      - wardrobe_postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user -d wardrobe"]
       interval: 5s

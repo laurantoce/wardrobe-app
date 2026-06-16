@@ -14,6 +14,7 @@ from app.schemas import (
     SpendingPoint,
     WardrobeSummary,
 )
+# CategoryCount is embedded in WardrobeSummary — no direct import needed
 
 router = APIRouter(prefix="/stats", tags=["stats"])
 
@@ -21,13 +22,8 @@ Period = Literal["day", "week", "month", "year"]
 
 
 @router.get("/summary", response_model=WardrobeSummary)
-def summary(
-    user: CurrentUser,
-    service: StatsServiceDep,
-    start: date | None = None,
-    end: date | None = None,
-):
-    return service.summary(user.id, start, end)
+def summary(user: CurrentUser, service: StatsServiceDep):
+    return service.summary(user.id)
 
 
 @router.get("/spending-by-category", response_model=list[CategorySpending])
