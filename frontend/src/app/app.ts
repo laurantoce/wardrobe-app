@@ -1,5 +1,9 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { OidcSecurityService } from 'angular-auth-oidc-client';
+
+import { ButtonDirective } from './shared/ui/button.directive';
 import { IconComponent, IconName } from './shared/ui/icon.component';
 
 interface NavItem {
@@ -12,7 +16,7 @@ interface NavItem {
 @Component({
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ButtonDirective, IconComponent],
   template: `
     <div class="flex h-full">
       <!-- Mobile top bar -->
@@ -64,11 +68,32 @@ interface NavItem {
           }
         </nav>
 
-        <div
-          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-faint"
-        >
-          <ui-icon name="settings" [size]="18" />
-          Settings
+        <div class="border-t border-line pt-3">
+          @if (isAuthenticated()) {
+            <button
+              appBtn
+              type="button"
+              variant="ghost"
+              size="sm"
+              class="w-full justify-start"
+              (click)="logout()"
+            >
+              <ui-icon name="log-out" [size]="18" />
+              Sign out
+            </button>
+          } @else {
+            <a
+              appBtn
+              routerLink="/login"
+              variant="outline"
+              size="sm"
+              class="w-full justify-start"
+              (click)="drawerOpen.set(false)"
+            >
+              <ui-icon name="log-in" [size]="18" />
+              Sign in
+            </a>
+          }
         </div>
       </aside>
 
@@ -82,7 +107,13 @@ interface NavItem {
   `,
 })
 export class App {
+  private readonly oidcSecurityService = inject(OidcSecurityService);
+
   protected readonly drawerOpen = signal(false);
+  protected readonly isAuthenticated = toSignal(
+    this.oidcSecurityService.isAuthenticated(),
+    { initialValue: false },
+  );
 
   protected readonly nav: NavItem[] = [
     { label: 'Dashboard', path: '/', icon: 'dashboard', exact: true },
@@ -90,4 +121,9 @@ export class App {
     { label: 'Outfits', path: '/outfits', icon: 'layers', exact: false },
     { label: 'AI Stylist', path: '/ai', icon: 'sparkles', exact: false },
   ];
+
+  protected logout(): void {
+    this.drawerOpen.set(false);
+    this.oidcSecurityService.logoff().subscribe();
+  }
 }

@@ -51,7 +51,7 @@ backend/
     main.py          # FastAPI app, CORS, exception handlers, router registration
     config.py        # pydantic-settings (reads backend/.env)
     database.py      # engine, SessionLocal, Base, get_db()
-    dependencies.py  # DI wiring: Session -> repositories -> services; CurrentUser (STUBBED)
+    dependencies.py  # DI wiring: Session -> repositories -> services; CurrentUser
     exceptions.py    # domain errors (NotFoundError, ValidationError)
     models/          # SQLAlchemy models: user, garment, outfit
     schemas/         # Pydantic request/response models
@@ -134,19 +134,25 @@ cascade-delete with the user.
 
 ## Auth — IMPORTANT (current state)
 
-Auth is **stubbed for development**. `app/dependencies.py::get_current_user` returns a
-single seeded demo user (via `UserRepository.get_or_create_demo`, auto-created on first
-request). Every service scopes its work to this user's id, so when we add real JWT auth
-later we only change `get_current_user` — services and routers stay untouched.
-`requirements.txt` already includes `python-jose` and `passlib` for that future work
-(we'll also need to add a `bcrypt` backend then).
+Auth is now wired through **Keycloak** for local development:
 
-**Chosen direction for real auth: Keycloak (self-hosted via Docker, OIDC).** Plan: add a
-`keycloak` service to compose; the FastAPI backend validates bearer JWTs against
-Keycloak's JWKS (replacing the body of `get_current_user`); the Angular app uses
-`angular-auth-oidc-client` (auth-code + PKCE) with a token HTTP interceptor + route
-guards + a login page. Same login then serves a future mobile app. Not built yet — auth
-stays stubbed until we implement it.
+- `docker-compose.yml` starts Keycloak at http://localhost:8080 and imports the
+  `wardrobe` realm from `keycloak/realm-export.json`.
+- The Angular app uses `angular-auth-oidc-client` with Authorization Code + PKCE. It has
+  a login route, protected feature routes, and a bearer-token interceptor for `/api`.
+- The FastAPI backend validates bearer JWTs against Keycloak's JWKS in
+  `app/auth.py`; `app/dependencies.py::get_current_user` maps the token email claim to
+  the local `users` table.
+- `AUTH_MODE=demo` is still available as an explicit local fallback. In demo mode,
+  `get_current_user` returns the original seeded demo user.
+
+Local dev credentials imported by the realm:
+
+- Keycloak admin: `admin` / `admin`
+- App user: `demo@wardrobe.local` / `demo`
+
+For production or Play Store builds, Keycloak must run behind HTTPS with real secrets and
+proper redirect URIs for the deployed web origin and Capacitor Android callback.
 
 ## Running locally
 
@@ -158,6 +164,7 @@ docker compose up --build
 
 - Frontend → http://localhost:4200
 - Backend API → http://localhost:8000/docs
+- Keycloak admin → http://localhost:8080
 - DB migrations run automatically on backend startup.
 - Source is mounted as a volume so hot-reload works for the backend (uvicorn --reload).
   Frontend hot-reload via `--poll 2000` (slower than native but works on Docker/Windows).
@@ -220,8 +227,8 @@ npm start   # ng serve on http://localhost:4200, proxies /api -> :8000
 - [ ] PWA baseline first (service worker, offline manifest) before Capacitor packaging
 
 ### Auth
-- [ ] **Keycloak auth** (Docker/K8s service + OIDC; replace `get_current_user`, add
-      interceptor/guards/login in Angular) — same OIDC token serves web + mobile
+- [ ] Production hardening for Keycloak (HTTPS, real secrets, external database,
+      backup/restore, mobile redirect URI, Kubernetes manifests)
 
 ### Product features
 - [ ] Cloudinary image upload for garments (frontend has `imageUrl`/`sourceUrl` fields ready)
@@ -234,3 +241,5 @@ npm start   # ng serve on http://localhost:4200, proxies /api -> :8000
 - [x] Smart color picker — curated palette (`color_name`) + color-family analytics
 - [x] Mobile responsive — collapsible sidebar drawer + responsive layout
 - [x] Full Docker Compose stack (postgres + backend + frontend, one command)
+- [x] **Local Keycloak auth** (Docker service + imported realm; FastAPI JWT validation;
+      Angular OIDC login, guard, and token interceptor)

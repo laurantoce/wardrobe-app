@@ -6,9 +6,11 @@ construction details stay in one place and are easy to override in tests.
 from typing import Annotated
 
 from fastapi import Depends
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.ai.client import GeminiClient, LLMClient
+from app.auth import credentials_exception, decode_access_token
 from app.config import settings
 from app.database import get_db
 from app.exceptions import ExternalServiceError
@@ -27,8 +29,11 @@ from app.services import (
 )
 
 DbSession = Annotated[Session, Depends(get_db)]
+BearerCredentials = Annotated[
+    HTTPAuthorizationCredentials | None,
+    Depends(HTTPBearer(auto_error=False)),
+]
 
-# Until real auth exists, "the current user" is a single demo user, created on first use.
 DEMO_USER_EMAIL = "demo@wardrobe.local"
 
 
@@ -49,12 +54,23 @@ def get_stats_repository(db: DbSession) -> StatsRepository:
     return StatsRepository(db)
 
 
-# --- current user (STUBBED auth) -------------------------------------------------
+# --- current user ---------------------------------------------------------------
 def get_current_user(
     users: Annotated[UserRepository, Depends(get_user_repository)],
+    credentials: BearerCredentials,
 ) -> User:
-    # TODO(auth): replace with JWT-based authentication.
-    return users.get_or_create_demo(DEMO_USER_EMAIL)
+    if settings.auth_mode == "demo":
+        return users.get_or_create_demo(DEMO_USER_EMAIL)
+
+    if credentials is None:
+        raise credentials_exception("Not authenticated")
+
+    claims = decode_access_token(credentials.credentials)
+    email = claims.get("email")
+    if not isinstance(email, str) or not email.strip():
+        raise credentials_exception("Token is missing an email claim")
+
+    return users.get_or_create_by_email(email.strip().lower())
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]

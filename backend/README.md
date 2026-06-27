@@ -13,6 +13,7 @@ docker compose up --build
 
 API docs: http://localhost:8000/docs  
 Health check: http://localhost:8000/health
+Keycloak admin: http://localhost:8080 (`admin` / `admin`)
 
 DB migrations run automatically on startup.
 
@@ -46,6 +47,10 @@ python -m uvicorn app.main:app --reload
 ```
 DATABASE_URL=postgresql://user:password@localhost:5433/wardrobe
 SECRET_KEY=<any-non-empty-string-for-dev>
+AUTH_MODE=keycloak
+KEYCLOAK_ISSUER=http://localhost:8080/realms/wardrobe
+KEYCLOAK_JWKS_URL=http://localhost:8080/realms/wardrobe/protocol/openid-connect/certs
+KEYCLOAK_AUDIENCE=wardrobe-api
 ```
 
 > The DB runs on host port **5433** (mapped from the container's 5432).
@@ -84,8 +89,18 @@ alembic revision --autogenerate -m "describe the change"
 alembic upgrade head
 ```
 
-## Auth (current state)
+## Auth
 
-Authentication is **stubbed**: every request acts as a single demo user, auto-created
-on first use (`app/dependencies.py::get_current_user`). Real JWT auth (Keycloak/OIDC)
-is on the roadmap; swapping it in only requires changing that one function.
+Authentication uses Keycloak/OIDC by default. The backend validates bearer access tokens
+against the Keycloak JWKS, verifies issuer/audience, then maps the token `email` claim to
+the local `users` table.
+
+Local Docker setup imports `keycloak/realm-export.json`:
+
+- Realm: `wardrobe`
+- SPA client: `wardrobe-frontend`
+- API audience: `wardrobe-api`
+- Demo app user: `demo@wardrobe.local` / `demo`
+
+For backend-only development, set `AUTH_MODE=demo` to use the original seeded demo user
+without requiring a bearer token.

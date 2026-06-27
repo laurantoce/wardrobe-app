@@ -13,6 +13,7 @@ docker compose up --build
 
 App: http://localhost:4200  
 Uses `proxy.conf.docker.json` to proxy `/api` → `http://backend:8000`.
+Keycloak: http://localhost:8080 (`demo@wardrobe.local` / `demo` for app login)
 
 ## Running locally
 
@@ -72,9 +73,22 @@ like `bg-canvas`, `text-ink`, `border-line`, `bg-accent-soft` come from those to
 
 Components are hand-rolled on Tailwind (+ Angular CDK where behavior is needed).
 
+## Auth
+
+The app uses `angular-auth-oidc-client` with the local Keycloak realm imported by Docker
+Compose:
+
+- Authority: `http://localhost:8080/realms/wardrobe`
+- Client: `wardrobe-frontend`
+- Flow: Authorization Code + PKCE
+- Login route: `/login`
+
+Feature routes are guarded, and API requests to `/api` receive the bearer access token
+through `core/auth.interceptor.ts`.
+
 ## Notes / TODO
 
-- No real auth yet — the backend treats every request as a single demo user. When JWT is
-  added, wire a token interceptor in `core/` + route guards + a login page.
+- Capacitor Android packaging still needs mobile redirect URI testing against the native
+  wrapper.
 - No unit tests yet.
 - Next: AI outfit suggestions, outfit detail/edit page, richer charts, dark mode.

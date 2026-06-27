@@ -12,6 +12,8 @@ export type IconName =
   | 'settings'
   | 'sparkles'
   | 'menu'
+  | 'log-in'
+  | 'log-out'
   | 'chevron-left'
   | 'camera';
 
@@ -77,6 +79,16 @@ export type IconName =
         }
         @case ('menu') {
           <path d="M4 6h16" /><path d="M4 12h16" /><path d="M4 18h16" />
+        }
+        @case ('log-in') {
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+          <path d="m10 17 5-5-5-5" />
+          <path d="M15 12H3" />
+        }
+        @case ('log-out') {
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <path d="m16 17 5-5-5-5" />
+          <path d="M21 12H9" />
         }
         @case ('camera') {
           <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />

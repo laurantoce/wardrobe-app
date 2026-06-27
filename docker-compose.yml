@@ -36,6 +36,22 @@ services:
       timeout: 5s
       retries: 5
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.6.4
+    container_name: wardrobe-keycloak
+    restart: unless-stopped
+    command: start-dev --import-realm
+    ports:
+      - "8080:8080"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: http://localhost:8080
+      KC_HEALTH_ENABLED: "true"
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+      - wardrobe_keycloak_data:/opt/keycloak/data
+
   backend:
     build: ./backend
     container_name: wardrobe-backend
@@ -52,11 +68,17 @@ services:
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
       MINIO_BUCKET: wardrobe
+      AUTH_MODE: keycloak
+      KEYCLOAK_ISSUER: http://localhost:8080/realms/wardrobe
+      KEYCLOAK_JWKS_URL: http://keycloak:8080/realms/wardrobe/protocol/openid-connect/certs
+      KEYCLOAK_AUDIENCE: wardrobe-api
     depends_on:
       postgres:
         condition: service_healthy
       minio:
         condition: service_healthy
+      keycloak:
+        condition: service_started
     volumes:
       - ./backend:/app
 
@@ -68,9 +90,11 @@ services:
       - "4200:4200"
     depends_on:
       - backend
+      - keycloak
     volumes:
       - ./frontend/src:/app/src
 
 volumes:
   wardrobe_postgres_data:
   wardrobe_minio_data:
+  wardrobe_keycloak_data:
