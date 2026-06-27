@@ -82,14 +82,16 @@ class StatsRepository:
         ).all()
 
     def material_counts(self, user_id: int) -> list:
-        # Each element is {material, pct}; extract the name and count per garment.
+        # Subquery filters to valid arrays first so json_array_elements never sees a scalar.
         stmt = text("""
             SELECT mat->>'material' AS material, COUNT(*) AS count
-            FROM garments,
-                 json_array_elements(material) AS mat
-            WHERE user_id = :user_id
-              AND material IS NOT NULL
-              AND json_array_length(material) > 0
+            FROM (
+                SELECT material FROM garments
+                WHERE user_id = :user_id
+                  AND material IS NOT NULL
+                  AND json_typeof(material) = 'array'
+            ) g,
+            json_array_elements(g.material) AS mat
             GROUP BY mat->>'material'
             ORDER BY count DESC
         """)
