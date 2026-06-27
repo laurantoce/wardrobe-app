@@ -7,8 +7,10 @@ import {
   Garment,
   GarmentDto,
   GarmentInput,
+  GarmentPhotoAnalysis,
   toGarment,
   toGarmentPayload,
+  toPhotoAnalysis,
 } from './garment.models';
 
 @Injectable({ providedIn: 'root' })
@@ -42,5 +44,24 @@ export class GarmentApi {
 
   remove(id: number): Observable<void> {
     return this.http.delete<void>(`${this.base}/${id}`);
+  }
+
+  analyzePhoto(file: File): Observable<GarmentPhotoAnalysis> {
+    const form = new FormData();
+    form.append('file', file);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return this.http
+      .post<any>(`${API_BASE}/ai/analyze-garment-photo`, form)
+      .pipe(map(toPhotoAnalysis));
+  }
+
+  replacePhoto(id: number, file: File): Observable<Garment> {
+    const form = new FormData();
+    form.append('file', file);
+    return this.http.put<GarmentDto>(`${this.base}/${id}/photo`, form).pipe(map(toGarment));
+  }
+
+  deletePhoto(id: number): Observable<Garment> {
+    return this.http.delete<GarmentDto>(`${this.base}/${id}/photo`).pipe(map(toGarment));
   }
 }

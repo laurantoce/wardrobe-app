@@ -1,10 +1,31 @@
 import json
+from decimal import Decimal
 
 from app.ai.client import LLMClient
 from app.exceptions import ExternalServiceError, ValidationError
 from app.models import Garment
 from app.repositories import GarmentRepository
-from app.schemas.ai import OutfitSuggestion, SuggestedGarment, SuggestionRequest, SuggestionResponse
+from app.schemas.ai import GarmentPhotoAnalysis, OutfitSuggestion, SuggestedGarment, SuggestionRequest, SuggestionResponse
+from app.schemas.garment import MaterialEntry
+from app.services.upload import upload_to_minio
+
+_PHOTO_ANALYSIS_PROMPT = """\
+Analyze this clothing item photo (may show the garment itself, its care label, or brand tag).
+Extract all visible information and return ONLY a JSON object (no markdown, no prose):
+
+{
+  "name": "<descriptive name e.g. 'White Linen Blazer' — or null if you cannot determine>",
+  "category": "<exactly one of: top, bottom, shoes, outerwear, dress, swimwear, accessory, underwear, other>",
+  "sub_type": "<specific type e.g. 't-shirt', 'jeans', 'ankle boots', 'blazer' — or null>",
+  "brand": "<brand name if clearly visible — or null>",
+  "color_name": "<closest match from: Black, Charcoal, Grey, White, Cream, Beige, Camel, Brown, Navy, Blue, Light Blue, Teal, Green, Olive, Burgundy, Red, Pink, Orange, Yellow, Purple>",
+  "occasion": "<most fitting from: casual, work, formal, sport, beach, travel, lounge — or null>",
+  "material": [{"material": "<one of: cotton, linen, wool, silk, polyester, denim, leather, cashmere, nylon, other>", "pct": <integer 0-100 or null if blend ratio unknown>}],
+  "purchase_price": <numeric price if a price tag is clearly visible — or null>,
+  "notes": "<brief notes on pattern, fit, or notable details — or null>"
+}
+
+Use null for any field you cannot confidently determine. Do not invent data."""
 
 _PROMPT = """\
 You are a personal stylist. The user's wardrobe is listed below.
@@ -82,6 +103,35 @@ class AIService:
             return self._llm.generate(prompt)
         except Exception as exc:
             raise ExternalServiceError(f"AI provider error: {exc}") from exc
+
+    def analyze_garment_photo(self, image_bytes: bytes, mime_type: str) -> GarmentPhotoAnalysis:
+        image_url = upload_to_minio(image_bytes, mime_type)
+        try:
+            raw = self._llm.analyze_image(image_bytes, mime_type, _PHOTO_ANALYSIS_PROMPT)
+            data = json.loads(raw)
+        except Exception as exc:
+            raise ExternalServiceError(f"AI photo analysis failed: {exc}") from exc
+
+        materials: list[MaterialEntry] = []
+        for m in (data.get("material") or []):
+            if isinstance(m, dict) and "material" in m:
+                materials.append(MaterialEntry(material=m["material"], pct=m.get("pct")))
+
+        price_raw = data.get("purchase_price")
+        price = Decimal(str(price_raw)) if price_raw is not None else None
+
+        return GarmentPhotoAnalysis(
+            image_url=image_url,
+            name=data.get("name"),
+            category=data.get("category"),
+            sub_type=data.get("sub_type"),
+            brand=data.get("brand"),
+            color_name=data.get("color_name"),
+            occasion=data.get("occasion"),
+            material=materials or None,
+            purchase_price=price,
+            notes=data.get("notes"),
+        )
 
     def _parse_and_validate(
         self, raw: str, garment_index: dict[int, Garment]

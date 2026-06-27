@@ -58,6 +58,49 @@ export interface MaterialEntry {
   pct: number | null; // percentage 0–100; null = blend ratio not specified
 }
 
+/** Wire DTO from POST /ai/analyze-garment-photo */
+interface GarmentPhotoAnalysisDto {
+  image_url: string | null;
+  name: string | null;
+  category: string | null;
+  sub_type: string | null;
+  brand: string | null;
+  color_name: string | null;
+  occasion: string | null;
+  material: MaterialEntry[] | null;
+  purchase_price: string | null;
+  notes: string | null;
+}
+
+/** Domain model for photo analysis result. */
+export interface GarmentPhotoAnalysis {
+  imageUrl: string | null;
+  name: string | null;
+  category: string | null;
+  subType: string | null;
+  brand: string | null;
+  colorName: string | null;
+  occasion: string | null;
+  material: MaterialEntry[] | null;
+  purchasePrice: number | null;
+  notes: string | null;
+}
+
+export function toPhotoAnalysis(dto: GarmentPhotoAnalysisDto): GarmentPhotoAnalysis {
+  return {
+    imageUrl: dto.image_url,
+    name: dto.name,
+    category: dto.category,
+    subType: dto.sub_type,
+    brand: dto.brand,
+    colorName: dto.color_name,
+    occasion: dto.occasion,
+    material: dto.material,
+    purchasePrice: dto.purchase_price != null ? Number(dto.purchase_price) : null,
+    notes: dto.notes,
+  };
+}
+
 export const OCCASIONS = [
   'casual', 'work', 'formal', 'sport', 'beach', 'travel', 'lounge',
 ] as const;

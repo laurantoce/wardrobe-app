@@ -5,10 +5,12 @@ class Settings(BaseSettings):
     secret_key: str
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
-    cloudinary_cloud_name: str = ""
-    cloudinary_api_key: str = ""
-    cloudinary_api_secret: str = ""
     gemini_api_key: str = ""
+    minio_endpoint: str = ""      # internal: http://minio:9000
+    minio_public_url: str = ""    # browser-reachable: http://localhost:9000
+    minio_access_key: str = ""
+    minio_secret_key: str = ""
+    minio_bucket: str = "wardrobe"
 
     class Config:
         env_file = ".env"

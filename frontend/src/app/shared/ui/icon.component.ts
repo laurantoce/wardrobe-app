@@ -12,7 +12,8 @@ export type IconName =
   | 'settings'
   | 'sparkles'
   | 'menu'
-  | 'chevron-left';
+  | 'chevron-left'
+  | 'camera';
 
 /** Minimal inline (lucide-style) icon set. Rendered via @switch so SVG children
  *  aren't stripped by Angular's HTML sanitizer. */
@@ -76,6 +77,10 @@ export type IconName =
         }
         @case ('menu') {
           <path d="M4 6h16" /><path d="M4 12h16" /><path d="M4 18h16" />
+        }
+        @case ('camera') {
+          <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+          <circle cx="12" cy="13" r="3" />
         }
       }
     </svg>

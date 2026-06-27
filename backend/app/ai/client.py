@@ -11,6 +11,7 @@ from typing import Protocol, runtime_checkable
 @runtime_checkable
 class LLMClient(Protocol):
     def generate(self, prompt: str) -> str: ...
+    def analyze_image(self, image_bytes: bytes, mime_type: str, prompt: str) -> str: ...
 
 
 class GeminiClient:
@@ -31,6 +32,20 @@ class GeminiClient:
         response = self._client.models.generate_content(
             model=self.MODEL,
             contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+            ),
+        )
+        return response.text
+
+    def analyze_image(self, image_bytes: bytes, mime_type: str, prompt: str) -> str:
+        from google.genai import types
+        response = self._client.models.generate_content(
+            model=self.MODEL,
+            contents=[
+                types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+                prompt,
+            ],
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
             ),

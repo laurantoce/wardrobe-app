@@ -1,7 +1,8 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, File, UploadFile, status
 
 from app.dependencies import CurrentUser, GarmentServiceDep
 from app.schemas import GarmentCreate, GarmentRead, GarmentUpdate
+from app.services.upload import upload_to_minio
 
 router = APIRouter(prefix="/garments", tags=["garments"])
 
@@ -38,3 +39,20 @@ def update_garment(
 @router.delete("/{garment_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_garment(garment_id: int, user: CurrentUser, service: GarmentServiceDep):
     service.delete(user.id, garment_id)
+
+
+@router.put("/{garment_id}/photo", response_model=GarmentRead)
+async def replace_garment_photo(
+    garment_id: int,
+    user: CurrentUser,
+    service: GarmentServiceDep,
+    file: UploadFile = File(...),
+):
+    image_bytes = await file.read()
+    url = upload_to_minio(image_bytes, file.content_type or "image/jpeg")
+    return service.update(user.id, garment_id, GarmentUpdate(image_url=url))
+
+
+@router.delete("/{garment_id}/photo", response_model=GarmentRead)
+def delete_garment_photo(garment_id: int, user: CurrentUser, service: GarmentServiceDep):
+    return service.update(user.id, garment_id, GarmentUpdate(image_url=None))

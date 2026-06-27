@@ -4,8 +4,10 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TitleCasePipe } from '@angular/common';
 
 import { ButtonDirective } from '../../../shared/ui/button.directive';
+import { IconComponent } from '../../../shared/ui/icon.component';
 import { COLOR_PALETTE, PaletteColor } from '../../../shared/colors';
-import { Garment, GARMENT_CATEGORIES, GarmentInput, MaterialEntry, MATERIALS, OCCASIONS } from '../data/garment.models';
+import { Garment, GARMENT_CATEGORIES, GarmentInput, GarmentPhotoAnalysis, MaterialEntry, MATERIALS, OCCASIONS } from '../data/garment.models';
+import { GarmentApi } from '../data/garment-api.service';
 
 const FIELD =
   'w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink ' +
@@ -25,9 +27,66 @@ const TYPE_HINTS: Record<string, string> = {
 @Component({
   selector: 'app-garment-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, ButtonDirective, TitleCasePipe],
+  imports: [ReactiveFormsModule, ButtonDirective, IconComponent, TitleCasePipe],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
+
+      <!-- Photo upload -->
+      <div>
+        <label [class]="LABEL">
+          Photo <span class="font-normal text-faint">· optional · AI will pre-fill fields</span>
+        </label>
+        <input
+          #fileInput
+          type="file"
+          accept="image/*"
+          class="hidden"
+          (change)="onFileSelected(fileInput)"
+        />
+
+        @if (imagePreview()) {
+          <div class="relative overflow-hidden rounded-lg">
+            <img
+              [src]="imagePreview()"
+              alt="Garment photo"
+              class="max-h-52 w-full object-cover"
+            />
+            @if (analyzing()) {
+              <div class="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/50">
+                <div class="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                <span class="text-sm font-medium text-white">Analyzing…</span>
+              </div>
+            }
+          </div>
+          @if (aiFieldCount() > 0 && !analyzing()) {
+            <p class="mt-1.5 text-xs text-faint">
+              AI pre-filled {{ aiFieldCount() }} fields · review before saving
+            </p>
+          }
+          <div class="mt-2 flex gap-3">
+            <button
+              type="button"
+              (click)="fileInput.click()"
+              class="text-xs text-accent hover:underline"
+            >Change photo</button>
+            <button
+              type="button"
+              (click)="removePhoto()"
+              class="text-xs text-faint hover:text-red-500"
+            >Remove</button>
+          </div>
+        } @else {
+          <button
+            type="button"
+            (click)="fileInput.click()"
+            class="mt-1 flex w-full flex-col items-center gap-2 rounded-lg border border-dashed border-line py-6 text-sm text-muted transition hover:border-accent/50 hover:text-ink"
+          >
+            <ui-icon name="camera" [size]="20" />
+            Upload photo — AI fills the form
+          </button>
+        }
+      </div>
+
       <div>
         <label [class]="LABEL" for="name">Name</label>
         <input id="name" [class]="FIELD" formControlName="name" placeholder="White Linen Shirt" />
@@ -201,6 +260,7 @@ const TYPE_HINTS: Record<string, string> = {
 })
 export class GarmentFormComponent {
   private readonly fb = inject(FormBuilder);
+  private readonly api = inject(GarmentApi);
 
   readonly initial = input<Garment | null>(null);
   readonly save = output<GarmentInput>();
@@ -214,6 +274,12 @@ export class GarmentFormComponent {
 
   protected readonly palette = COLOR_PALETTE;
   protected readonly selectedMaterials = signal<MaterialEntry[]>([]);
+
+  // Photo state
+  protected readonly imageUrl = signal<string | null | undefined>(undefined);
+  protected readonly imagePreview = signal<string | null>(null);
+  protected readonly analyzing = signal(false);
+  protected readonly aiFieldCount = signal(0);
 
   protected readonly form = this.fb.nonNullable.group({
     name: ['', Validators.required],
@@ -263,6 +329,8 @@ export class GarmentFormComponent {
         occasion: g.occasion ?? '',
       });
       this.selectedMaterials.set(g.material ?? []);
+      this.imageUrl.set(g.imageUrl ?? null);
+      this.imagePreview.set(g.imageUrl ?? null);
     });
   }
 
@@ -294,6 +362,73 @@ export class GarmentFormComponent {
     );
   }
 
+  protected removePhoto(): void {
+    this.imageUrl.set(null);
+    this.imagePreview.set(null);
+    this.aiFieldCount.set(0);
+  }
+
+  protected onFileSelected(input: HTMLInputElement): void {
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const localUrl = URL.createObjectURL(file);
+    this.imagePreview.set(localUrl);
+    this.analyzing.set(true);
+    this.aiFieldCount.set(0);
+
+    this.api.analyzePhoto(file).subscribe({
+      next: (analysis) => {
+        this.analyzing.set(false);
+        if (analysis.imageUrl) {
+          this.imageUrl.set(analysis.imageUrl);
+          this.imagePreview.set(analysis.imageUrl);
+        }
+        this.applyAnalysis(analysis);
+      },
+      error: () => {
+        this.analyzing.set(false);
+        // Keep local preview; analysis failed, don't pre-fill
+      },
+    });
+
+    // Reset so the same file can be re-selected
+    input.value = '';
+  }
+
+  private applyAnalysis(a: GarmentPhotoAnalysis): void {
+    let count = 0;
+    const patch: Record<string, unknown> = {};
+
+    if (a.name)     { patch['name']          = a.name;            count++; }
+    if (a.category) { patch['category']       = a.category;        count++; }
+    if (a.brand)    { patch['brand']          = a.brand;           count++; }
+    if (a.subType)  { patch['subType']        = a.subType;         count++; }
+    if (a.occasion) { patch['occasion']       = a.occasion;        count++; }
+    if (a.notes)    { patch['notes']          = a.notes;           count++; }
+    if (a.purchasePrice != null) {
+      patch['purchasePrice'] = String(a.purchasePrice);
+      count++;
+    }
+    if (a.colorName) {
+      const color = COLOR_PALETTE.find(
+        (c) => c.name.toLowerCase() === a.colorName!.toLowerCase(),
+      );
+      if (color) {
+        patch['colorHex']  = color.hex;
+        patch['colorName'] = color.name;
+        count++;
+      }
+    }
+    if (a.material?.length) {
+      this.selectedMaterials.set(a.material);
+      count++;
+    }
+
+    this.form.patchValue(patch as Parameters<typeof this.form.patchValue>[0]);
+    this.aiFieldCount.set(count);
+  }
+
   protected submit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -312,6 +447,7 @@ export class GarmentFormComponent {
       notes: v.notes.trim() || null,
       occasion: v.occasion || null,
       material: this.selectedMaterials().length > 0 ? this.selectedMaterials() : null,
+      imageUrl: this.imageUrl() !== undefined ? this.imageUrl() : undefined,
     });
   }
 }

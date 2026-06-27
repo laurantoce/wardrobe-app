@@ -15,27 +15,38 @@ import { Garment } from '../data/garment.models';
       <button
         type="button"
         (click)="open.emit()"
-        class="flex flex-1 flex-col items-start gap-3 p-4 text-left transition-colors hover:bg-canvas"
+        class="flex flex-1 flex-col items-start text-left transition-colors hover:bg-canvas"
       >
-        <div class="flex w-full items-center gap-2">
-          <span
-            class="h-4 w-4 shrink-0 rounded-full border border-line [box-shadow:inset_0_0_0_1px_#0000001a]"
-            [style.background-color]="garment().colorHex || '#c8c4be'"
-          ></span>
-          <span class="truncate font-medium">{{ garment().name }}</span>
-        </div>
-        <span class="rounded-full bg-canvas px-2 py-0.5 text-xs text-muted">
-          {{ garment().category | titlecase }}
-        </span>
-        <div class="mt-auto flex w-full items-baseline justify-between pt-1">
-          <span class="truncate text-sm text-muted">{{ garment().brand || '—' }}</span>
-          <span class="text-sm font-semibold">
-            {{
-              garment().purchasePrice != null
-                ? (garment().purchasePrice | currency: 'EUR')
-                : '—'
-            }}
+        @if (garment().imageUrl) {
+          <div class="flex aspect-[4/5] w-full items-center justify-center overflow-hidden bg-canvas">
+            <img
+              [src]="garment().imageUrl"
+              [alt]="garment().name"
+              class="h-full w-full object-contain"
+            />
+          </div>
+        }
+        <div class="flex w-full flex-col items-start gap-3 p-4">
+          <div class="flex w-full items-center gap-2">
+            <span
+              class="h-4 w-4 shrink-0 rounded-full border border-line [box-shadow:inset_0_0_0_1px_#0000001a]"
+              [style.background-color]="garment().colorHex || '#c8c4be'"
+            ></span>
+            <span class="truncate font-medium">{{ garment().name }}</span>
+          </div>
+          <span class="rounded-full bg-canvas px-2 py-0.5 text-xs text-muted">
+            {{ garment().category | titlecase }}
           </span>
+          <div class="mt-auto flex w-full items-baseline justify-between pt-1">
+            <span class="truncate text-sm text-muted">{{ garment().brand || '—' }}</span>
+            <span class="text-sm font-semibold">
+              {{
+                garment().purchasePrice != null
+                  ? (garment().purchasePrice | currency: 'EUR')
+                  : '—'
+              }}
+            </span>
+          </div>
         </div>
       </button>
 

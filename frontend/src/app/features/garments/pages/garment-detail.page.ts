@@ -44,6 +44,56 @@ import { Garment, GarmentInput } from '../data/garment.models';
     } @else if (error()) {
       <p class="py-16 text-center text-sm text-red-600">{{ error() }}</p>
     } @else if (garment(); as g) {
+      @if (g.imageUrl) {
+        <div
+          class="mb-6 flex max-h-80 cursor-pointer items-center justify-center overflow-hidden rounded-xl bg-canvas"
+          (click)="photoOverlayOpen.set(true)"
+          title="Click to manage photo"
+        >
+          <img [src]="g.imageUrl" [alt]="g.name" class="max-h-80 w-full object-contain" />
+        </div>
+      }
+
+      <!-- Photo overlay -->
+      @if (photoOverlayOpen() && g.imageUrl) {
+        <div
+          class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80"
+          (click)="photoOverlayOpen.set(false)"
+        >
+          <div
+            class="flex max-w-xl flex-col items-center gap-4 p-4"
+            (click)="$event.stopPropagation()"
+          >
+            <img
+              [src]="g.imageUrl"
+              [alt]="g.name"
+              class="max-h-[65vh] max-w-full rounded-xl object-contain"
+            />
+            @if (photoLoading()) {
+              <p class="text-sm text-white/70">Uploading…</p>
+            } @else {
+              <div class="flex gap-3">
+                <input
+                  #replaceInput
+                  type="file"
+                  accept="image/*"
+                  class="hidden"
+                  (change)="replacePhoto(replaceInput)"
+                />
+                <button appBtn variant="outline" class="bg-white/90" (click)="replaceInput.click()">
+                  Replace photo
+                </button>
+                <button appBtn variant="danger" (click)="deletePhoto()">
+                  Delete photo
+                </button>
+                <button appBtn variant="ghost" class="text-white" (click)="photoOverlayOpen.set(false)">
+                  Close
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      }
       <header class="mb-6 flex items-start justify-between gap-4">
         <div class="flex items-center gap-3">
           <span
@@ -132,6 +182,8 @@ export class GarmentDetailPage {
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly sheetOpen = signal(false);
+  protected readonly photoOverlayOpen = signal(false);
+  protected readonly photoLoading = signal(false);
 
   constructor() {
     effect(() => {
@@ -169,6 +221,30 @@ export class GarmentDetailPage {
     if (!confirm(`Delete "${g.name}"?`)) return;
     this.api.remove(g.id).subscribe({
       next: () => this.router.navigate(['/items']),
+      error: (e: ApiError) => this.error.set(e.message),
+    });
+  }
+
+  protected replacePhoto(input: HTMLInputElement): void {
+    const file = input.files?.[0];
+    if (!file) return;
+    this.photoLoading.set(true);
+    this.api.replacePhoto(this.garment()!.id, file).subscribe({
+      next: (updated) => {
+        this.garment.set(updated);
+        this.photoLoading.set(false);
+      },
+      error: () => this.photoLoading.set(false),
+    });
+    input.value = '';
+  }
+
+  protected deletePhoto(): void {
+    this.api.deletePhoto(this.garment()!.id).subscribe({
+      next: (updated) => {
+        this.garment.set(updated);
+        this.photoOverlayOpen.set(false);
+      },
       error: (e: ApiError) => this.error.set(e.message),
     });
   }
