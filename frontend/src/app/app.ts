@@ -88,5 +88,6 @@ export class App {
     { label: 'Dashboard', path: '/', icon: 'dashboard', exact: true },
     { label: 'Items', path: '/items', icon: 'shirt', exact: false },
     { label: 'Outfits', path: '/outfits', icon: 'layers', exact: false },
+    { label: 'AI Stylist', path: '/ai', icon: 'sparkles', exact: false },
   ];
 }

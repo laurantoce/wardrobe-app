@@ -16,8 +16,20 @@ catalogs their clothes and outfits, then gets AI help to make better use of what
 **Note:** Wear/wash tracking has been intentionally removed — the focus is on the wardrobe
 as a catalog and on AI-driven outfit suggestions.
 
-**Future:** AI integration (Anthropic) for outfit suggestions and insights. Image
-hosting via Cloudinary. Neither is wired up yet — keys are stubbed in config.
+**Future:** AI integration (Gemini 2.5 Flash, free tier) for outfit suggestions and
+insights. Image hosting via Cloudinary. Neither is wired up yet — keys are stubbed in config.
+
+## Project goals (beyond the product itself)
+
+This app is also a **portfolio project** meant to demonstrate:
+
+1. **AI integration** — LLM-powered outfit suggestions and insights wired into a real
+   production-quality backend. Provider: **Google Gemini 2.5 Flash** (free tier, `google-genai` SDK).
+2. **DevOps / Kubernetes** — containerized workloads orchestrated with Kubernetes;
+   CI/CD pipelines (lint → test → build image → deploy) using GitHub Actions or similar.
+3. **Android Play Store deployment** — ship the app as a native Android app, most likely
+   via a Capacitor wrapper over the Angular frontend (PWA-first, then packaged for Play
+   Store). The clean API + future OIDC auth make this straightforward.
 
 ## Stack
 
@@ -27,7 +39,9 @@ hosting via Cloudinary. Neither is wired up yet — keys are stubbed in config.
 | DB       | PostgreSQL 18 (via Docker Compose, host port **5433**)  |
 | Migrations | Alembic                                         |
 | Frontend | Angular 20 (standalone, signals, zoneless) + @ngrx/signals + Tailwind v4 |
-| Deploy   | Dockerfile + CI/CD — **planned, not built yet**   |
+| Deploy   | Kubernetes + GitHub Actions CI/CD — **planned, not built yet** |
+| Mobile   | Capacitor wrapper → Android Play Store — **planned, not built yet** |
+| AI       | Free-tier LLM (Gemini Flash / Groq) for outfit suggestions — **planned, not built yet** |
 
 ## Repo layout
 
@@ -186,19 +200,37 @@ npm start   # ng serve on http://localhost:4200, proxies /api -> :8000
 
 ## Roadmap / TODO
 
-- [ ] **Anthropic AI outfit suggestions** — core feature: given occasion/season/vibe,
-      suggest outfits from the user's wardrobe using the Claude API
-- [ ] "Paste a product URL → AI fills category/color/name" (vision AI, reuses Anthropic)
+### AI integration (next focus)
+- [ ] **AI outfit suggestions** — given occasion/season/vibe, suggest outfits from the
+      user's wardrobe. Provider: **Gemini 2.5 Flash** (free tier, `google-genai` SDK,
+      `GEMINI_API_KEY` in config/env).
+- [ ] "Paste a product URL → AI fills category/color/name" (vision/extraction, reuses AI service)
+
+### DevOps / Infrastructure
+- [ ] **Kubernetes deployment** — convert Docker Compose to Kubernetes manifests (Deployments,
+      Services, ConfigMaps, Secrets, Ingress). Target: self-hosted or managed cluster (GKE/EKS).
+- [ ] **CI/CD pipeline** — GitHub Actions: lint → test → build image → push to registry →
+      deploy to K8s. Demonstrate full GitOps flow.
+- [ ] Tests — backend pytest; Angular specs — needed before CI is meaningful
+
+### Mobile (Android Play Store)
+- [ ] **Capacitor wrapper** — wrap the Angular PWA with Capacitor, build APK/AAB, publish
+      to Google Play Store. Auth (OIDC) and clean API make this straightforward once Keycloak
+      is in place.
+- [ ] PWA baseline first (service worker, offline manifest) before Capacitor packaging
+
+### Auth
+- [ ] **Keycloak auth** (Docker/K8s service + OIDC; replace `get_current_user`, add
+      interceptor/guards/login in Angular) — same OIDC token serves web + mobile
+
+### Product features
 - [ ] Cloudinary image upload for garments (frontend has `imageUrl`/`sourceUrl` fields ready)
-- [ ] **Keycloak auth** (Docker service + OIDC; replace `get_current_user`, add
-      interceptor/guards/login in Angular) — chosen direction, not built yet
+- [ ] Outfit detail/edit page
+- [ ] Richer charts (line charts), dark mode
+
+### Done
 - [x] Angular frontend — Dashboard / Items / Outfits
 - [x] Temporal analytics — date-range presets + spending over-time charts
 - [x] Smart color picker — curated palette (`color_name`) + color-family analytics
 - [x] Mobile responsive — collapsible sidebar drawer + responsive layout
 - [x] Full Docker Compose stack (postgres + backend + frontend, one command)
-- [ ] Outfit detail/edit page
-- [ ] Richer charts (line charts), dark mode
-- [ ] "Build an app": PWA (cheapest) or Capacitor wrapper — clean API + OIDC make it easy
-- [ ] CI/CD pipeline (lint, test, build image, deploy)
-- [ ] Tests — none yet (backend pytest; frontend has no specs)

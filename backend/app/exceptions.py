@@ -16,3 +16,7 @@ class NotFoundError(DomainError):
 
 class ValidationError(DomainError):
     """A request is well-formed but violates a business rule."""
+
+
+class ExternalServiceError(DomainError):
+    """An upstream external service (e.g. AI provider) failed or is not configured."""

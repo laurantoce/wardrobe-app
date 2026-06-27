@@ -2,8 +2,8 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.exceptions import NotFoundError, ValidationError
-from app.routers import garments, outfits, stats
+from app.exceptions import ExternalServiceError, NotFoundError, ValidationError
+from app.routers import ai, garments, outfits, stats
 
 app = FastAPI(
     title="Wardrobe App API",
@@ -34,6 +34,13 @@ def handle_validation(request: Request, exc: ValidationError) -> JSONResponse:
     )
 
 
+@app.exception_handler(ExternalServiceError)
+def handle_external_service(request: Request, exc: ExternalServiceError) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content={"detail": str(exc)}
+    )
+
+
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
@@ -42,3 +49,4 @@ def health_check():
 app.include_router(garments.router)
 app.include_router(outfits.router)
 app.include_router(stats.router)
+app.include_router(ai.router)

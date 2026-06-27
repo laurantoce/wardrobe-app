@@ -27,5 +27,11 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/outfits/pages/outfit-list.page').then((m) => m.OutfitListPage),
   },
+  {
+    path: 'ai',
+    title: 'AI Stylist · Wardrobe',
+    loadComponent: () =>
+      import('./features/ai/pages/ai-suggestions.page').then((m) => m.AiSuggestionsPage),
+  },
   { path: '**', redirectTo: '' },
 ];
