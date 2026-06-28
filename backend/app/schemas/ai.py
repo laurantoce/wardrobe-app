@@ -28,6 +28,14 @@ class GarmentPhotoAnalysis(BaseModel):
     notes: str | None = None
 
 
+class OutfitPhotoAnalysis(BaseModel):
+    original_image_url: str | None = None
+    cutout_image_url: str | None = None
+    cutout_error: str | None = None
+    matched_garment_ids: list[int] = Field(default_factory=list)
+    unmatched_descriptions: list[str] = Field(default_factory=list)
+
+
 class SuggestedGarment(BaseModel):
     id: int
     name: str

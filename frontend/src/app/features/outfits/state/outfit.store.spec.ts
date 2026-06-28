@@ -14,6 +14,7 @@ function outfit(overrides: Partial<Outfit> = {}): Outfit {
     season: null,
     occasion: 'work',
     notes: null,
+    imageUrl: null,
     createdAt: '2026-06-10T12:00:00Z',
     garments: [],
     ...overrides,

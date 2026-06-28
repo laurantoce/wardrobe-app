@@ -5,10 +5,27 @@ from app.ai.client import LLMClient
 from app.exceptions import ExternalServiceError, ValidationError
 from app.models import Garment
 from app.repositories import GarmentRepository
-from app.schemas.ai import GarmentPhotoAnalysis, OutfitSuggestion, SuggestedGarment, SuggestionRequest, SuggestionResponse
+from app.schemas.ai import GarmentPhotoAnalysis, OutfitPhotoAnalysis, OutfitSuggestion, SuggestedGarment, SuggestionRequest, SuggestionResponse
 from app.schemas.garment import MaterialEntry
 from app.services.image_processing import remove_background
 from app.services.upload import upload_to_object_storage
+
+_OUTFIT_ANALYSIS_PROMPT = """\
+You are analyzing a photo of a person wearing a complete outfit.
+The user's wardrobe is listed below as JSON.
+Identify which specific garments from the wardrobe are worn in this photo.
+Match only garments you can identify with reasonable confidence based on category, color, and visual appearance.
+
+Return ONLY a JSON object (no markdown, no prose):
+{{
+  "matched_garment_ids": [<int>, ...],
+  "unmatched_descriptions": ["<brief description of any clearly visible worn item NOT found in the wardrobe>"]
+}}
+
+If you cannot confidently match any garment, return empty matched_garment_ids.
+
+Wardrobe:
+{wardrobe_json}"""
 
 _PHOTO_ANALYSIS_PROMPT = """\
 Analyze this clothing item photo (may show the garment itself, its care label, or brand tag).
@@ -153,6 +170,61 @@ class AIService:
             material=materials or None,
             purchase_price=price,
             notes=data.get("notes"),
+        )
+
+    def analyze_outfit_photo(
+        self, user_id: int, image_bytes: bytes, mime_type: str, generate_cutout: bool = True
+    ) -> OutfitPhotoAnalysis:
+        original_image_url = upload_to_object_storage(image_bytes, mime_type)
+        cutout_image_url: str | None = None
+        cutout_error: str | None = None
+
+        if generate_cutout:
+            try:
+                cutout = remove_background(image_bytes)
+                if cutout is not None:
+                    cutout_image_url = upload_to_object_storage(
+                        cutout.image_bytes, cutout.mime_type
+                    )
+            except ExternalServiceError as exc:
+                cutout_error = str(exc)
+
+        matched_garment_ids: list[int] = []
+        unmatched_descriptions: list[str] = []
+
+        if self._llm is not None:
+            wardrobe = self._garments.list_for_user(user_id)
+            wardrobe_data = [
+                {
+                    "id": g.id,
+                    "name": g.name,
+                    "category": g.category,
+                    "color_name": g.color_name,
+                    "brand": g.brand,
+                    "sub_type": g.sub_type,
+                }
+                for g in wardrobe
+            ]
+            prompt = _OUTFIT_ANALYSIS_PROMPT.format(
+                wardrobe_json=json.dumps(wardrobe_data, indent=2)
+            )
+            try:
+                raw = self._llm.analyze_image(image_bytes, mime_type, prompt)
+                data = json.loads(raw)
+                garment_ids = {g.id for g in wardrobe}
+                matched_garment_ids = [
+                    gid for gid in data.get("matched_garment_ids", []) if gid in garment_ids
+                ]
+                unmatched_descriptions = data.get("unmatched_descriptions", [])
+            except Exception:
+                pass  # graceful degradation — user can select garments manually
+
+        return OutfitPhotoAnalysis(
+            original_image_url=original_image_url,
+            cutout_image_url=cutout_image_url,
+            cutout_error=cutout_error,
+            matched_garment_ids=matched_garment_ids,
+            unmatched_descriptions=unmatched_descriptions,
         )
 
     def _parse_and_validate(

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, File, UploadFile
 
 from app.dependencies import AIServiceDep, CurrentUser
-from app.schemas.ai import GarmentPhotoAnalysis, SuggestionRequest, SuggestionResponse
+from app.schemas.ai import GarmentPhotoAnalysis, OutfitPhotoAnalysis, SuggestionRequest, SuggestionResponse
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -22,4 +22,17 @@ async def analyze_garment_photo(
     image_bytes = await file.read()
     return service.analyze_garment_photo(
         image_bytes, file.content_type or "image/jpeg", generate_cutout
+    )
+
+
+@router.post("/analyze-outfit-photo", response_model=OutfitPhotoAnalysis)
+async def analyze_outfit_photo(
+    service: AIServiceDep,
+    user: CurrentUser,
+    file: UploadFile = File(...),
+    generate_cutout: bool = True,
+):
+    image_bytes = await file.read()
+    return service.analyze_outfit_photo(
+        user.id, image_bytes, file.content_type or "image/jpeg", generate_cutout
     )

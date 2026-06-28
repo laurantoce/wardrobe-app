@@ -40,6 +40,13 @@ export const routes: Routes = [
       import('./features/outfits/pages/outfit-list.page').then((m) => m.OutfitListPage),
   },
   {
+    path: 'outfits/:id',
+    title: 'Outfit · Wardrobe',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/outfits/pages/outfit-detail.page').then((m) => m.OutfitDetailPage),
+  },
+  {
     path: 'ai',
     title: 'AI Stylist · Wardrobe',
     canActivate: [authGuard],

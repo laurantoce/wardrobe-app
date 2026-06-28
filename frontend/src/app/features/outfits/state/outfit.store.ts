@@ -30,8 +30,13 @@ export class OutfitStore {
 
   async add(input: OutfitInput): Promise<Outfit> {
     const created = await firstValueFrom(this.api.create(input));
-    this.entities.update((items) => [...items, created]);
+    this.entities.update((items) => [created, ...items]);
     return created;
+  }
+
+  async update(id: number, patch: Partial<OutfitInput>): Promise<void> {
+    const updated = await firstValueFrom(this.api.update(id, patch));
+    this.entities.update((items) => items.map((item) => (item.id === id ? updated : item)));
   }
 
   async remove(id: number): Promise<void> {

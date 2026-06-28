@@ -1,7 +1,8 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, File, UploadFile, status
 
 from app.dependencies import CurrentUser, OutfitServiceDep
 from app.schemas import OutfitCreate, OutfitRead, OutfitUpdate
+from app.services.upload import upload_to_object_storage
 
 router = APIRouter(prefix="/outfits", tags=["outfits"])
 
@@ -34,3 +35,15 @@ def update_outfit(
 @router.delete("/{outfit_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_outfit(outfit_id: int, user: CurrentUser, service: OutfitServiceDep):
     service.delete(user.id, outfit_id)
+
+
+@router.put("/{outfit_id}/photo", response_model=OutfitRead)
+async def replace_outfit_photo(
+    outfit_id: int,
+    user: CurrentUser,
+    service: OutfitServiceDep,
+    file: UploadFile = File(...),
+):
+    image_bytes = await file.read()
+    url = upload_to_object_storage(image_bytes, file.content_type or "image/jpeg")
+    return service.update(user.id, outfit_id, OutfitUpdate(image_url=url))

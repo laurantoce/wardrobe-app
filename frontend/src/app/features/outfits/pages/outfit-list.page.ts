@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 
 import { ButtonDirective } from '../../../shared/ui/button.directive';
 import { IconComponent } from '../../../shared/ui/icon.component';
@@ -37,26 +38,27 @@ import { OutfitStore } from '../state/outfit.store';
       <p class="py-16 text-center text-sm text-red-600">{{ store.error() }}</p>
     } @else if (store.entities().length === 0) {
       <div class="flex flex-col items-center gap-3 py-20 text-center">
-        <ui-icon name="layers" [size]="32" />
-        <p class="text-sm text-muted">No outfits yet. Combine some items into a look.</p>
+        <ui-icon name="layers" [size]="36" class="text-faint" />
+        <p class="font-medium">No outfits yet</p>
+        <p class="text-sm text-muted max-w-xs">Upload a photo of a look and let AI match it to your wardrobe items.</p>
         <button appBtn variant="outline" (click)="sheetOpen.set(true)">
           <ui-icon name="plus" [size]="16" /> New outfit
         </button>
       </div>
     } @else {
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         @for (o of store.entities(); track o.id) {
-          <app-outfit-card [outfit]="o" (remove)="remove(o)" />
+          <app-outfit-card [outfit]="o" (open)="goToDetail(o)" (remove)="remove(o)" />
         }
       </div>
     }
 
-    <ui-sheet [open]="sheetOpen()" title="New outfit" (closed)="sheetOpen.set(false)">
+    <ui-sheet [open]="sheetOpen()" title="New outfit" (closed)="closeSheet()">
       @if (sheetOpen()) {
         <app-outfit-form
           [garments]="garmentStore.entities()"
           (save)="add($event)"
-          (cancelled)="sheetOpen.set(false)"
+          (cancelled)="closeSheet()"
         />
       }
     </ui-sheet>
@@ -73,6 +75,7 @@ import { OutfitStore } from '../state/outfit.store';
 export class OutfitListPage {
   protected readonly store = inject(OutfitStore);
   protected readonly garmentStore = inject(GarmentStore);
+  private readonly router = inject(Router);
 
   protected readonly sheetOpen = signal(false);
   protected readonly toast = signal<string | null>(null);
@@ -80,6 +83,14 @@ export class OutfitListPage {
   constructor() {
     void this.store.load();
     void this.garmentStore.load();
+  }
+
+  protected goToDetail(o: Outfit): void {
+    void this.router.navigate(['/outfits', o.id]);
+  }
+
+  protected closeSheet(): void {
+    this.sheetOpen.set(false);
   }
 
   protected async add(input: OutfitInput): Promise<void> {

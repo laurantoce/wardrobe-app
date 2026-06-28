@@ -10,6 +10,7 @@ class OutfitBase(BaseModel):
     season: str | None = Field(default=None, max_length=50)
     occasion: str | None = Field(default=None, max_length=50)
     notes: str | None = None
+    image_url: str | None = None
 
 
 class OutfitCreate(OutfitBase):
@@ -23,6 +24,7 @@ class OutfitUpdate(BaseModel):
     season: str | None = Field(default=None, max_length=50)
     occasion: str | None = Field(default=None, max_length=50)
     notes: str | None = None
+    image_url: str | None = None
     garment_ids: list[int] | None = None
 
 
