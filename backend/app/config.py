@@ -16,11 +16,12 @@ class Settings(BaseSettings):
     )
     keycloak_audience: str = "wardrobe-api"
     keycloak_algorithm: str = "RS256"
-    minio_endpoint: str = ""      # internal: http://minio:9000
-    minio_public_url: str = ""    # browser-reachable: http://localhost:9000
-    minio_access_key: str = ""
-    minio_secret_key: str = ""
-    minio_bucket: str = "wardrobe"
+    object_storage_endpoint: str = ""
+    object_storage_public_url: str = ""
+    object_storage_access_key: str = ""
+    object_storage_secret_key: str = ""
+    object_storage_bucket: str = "localhost"
+    object_storage_region: str = "garage"
 
     class Config:
         env_file = ".env"

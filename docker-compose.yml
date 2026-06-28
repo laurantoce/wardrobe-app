@@ -17,30 +17,49 @@ services:
       timeout: 5s
       retries: 5
 
-  minio:
-    image: minio/minio
-    container_name: wardrobe-minio
+  garage:
+    image: dxflrs/garage:v2.3.0
+    container_name: wardrobe-garage
     restart: unless-stopped
-    command: server /data --console-address ":9001"
+    command: /garage server --single-node --default-bucket
     ports:
-      - "9000:9000"   # S3 API (browser-reachable for image URLs)
-      - "9001:9001"   # MinIO web console
+      - "3900:3900"   # S3 API
+      - "3902:3902"   # public website endpoint for uploaded images
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      GARAGE_DEFAULT_ACCESS_KEY: GKwardrobedev0000000000000000
+      GARAGE_DEFAULT_SECRET_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      GARAGE_DEFAULT_BUCKET: localhost
     volumes:
-      - wardrobe_minio_data:/data
+      - ./garage/garage.toml:/etc/garage.toml:ro
+      - wardrobe_garage_meta:/var/lib/garage/meta
+      - wardrobe_garage_data:/var/lib/garage/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: ["CMD", "/garage", "status"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  garage-init:
+    image: dxflrs/garage:v2.3.0
+    container_name: wardrobe-garage-init
+    restart: "no"
+    command: /garage bucket website --allow localhost
+    depends_on:
+      garage:
+        condition: service_healthy
+    volumes:
+      - ./garage/garage.toml:/etc/garage.toml:ro
+      - wardrobe_garage_meta:/var/lib/garage/meta
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.6.4
     container_name: wardrobe-keycloak
     restart: unless-stopped
-    command: start-dev --import-realm
+    command: >
+      start-dev --import-realm
+      --spi-theme-static-max-age=-1
+      --spi-theme-cache-themes=false
+      --spi-theme-cache-templates=false
     ports:
       - "8080:8080"
     environment:
@@ -50,7 +69,31 @@ services:
       KC_HEALTH_ENABLED: "true"
     volumes:
       - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+      - ./keycloak/themes:/opt/keycloak/themes:ro
       - wardrobe_keycloak_data:/opt/keycloak/data
+
+  keycloak-theme:
+    image: quay.io/keycloak/keycloak:26.6.4
+    container_name: wardrobe-keycloak-theme
+    restart: "no"
+    depends_on:
+      - keycloak
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        until /opt/keycloak/bin/kcadm.sh config credentials \
+          --server http://keycloak:8080 \
+          --realm master \
+          --user admin \
+          --password admin; do
+          sleep 2
+        done
+
+        until /opt/keycloak/bin/kcadm.sh update realms/wardrobe \
+          -s loginTheme=wardrobe; do
+          sleep 2
+        done
 
   backend:
     build: ./backend
@@ -63,11 +106,12 @@ services:
       SECRET_KEY: dev-secret-key-change-in-production
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: "30"
-      MINIO_ENDPOINT: http://minio:9000
-      MINIO_PUBLIC_URL: http://localhost:9000
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-      MINIO_BUCKET: wardrobe
+      OBJECT_STORAGE_ENDPOINT: http://garage:3900
+      OBJECT_STORAGE_PUBLIC_URL: http://localhost:3902
+      OBJECT_STORAGE_ACCESS_KEY: GKwardrobedev0000000000000000
+      OBJECT_STORAGE_SECRET_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      OBJECT_STORAGE_BUCKET: localhost
+      OBJECT_STORAGE_REGION: garage
       AUTH_MODE: keycloak
       KEYCLOAK_ISSUER: http://localhost:8080/realms/wardrobe
       KEYCLOAK_JWKS_URL: http://keycloak:8080/realms/wardrobe/protocol/openid-connect/certs
@@ -75,10 +119,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      minio:
-        condition: service_healthy
-      keycloak:
-        condition: service_started
+      garage-init:
+        condition: service_completed_successfully
+      keycloak-theme:
+        condition: service_completed_successfully
     volumes:
       - ./backend:/app
 
@@ -89,12 +133,15 @@ services:
     ports:
       - "4200:4200"
     depends_on:
-      - backend
-      - keycloak
+      backend:
+        condition: service_started
+      keycloak-theme:
+        condition: service_completed_successfully
     volumes:
       - ./frontend/src:/app/src
 
 volumes:
   wardrobe_postgres_data:
-  wardrobe_minio_data:
+  wardrobe_garage_meta:
+  wardrobe_garage_data:
   wardrobe_keycloak_data:

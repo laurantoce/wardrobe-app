@@ -14,6 +14,8 @@ docker compose up --build
 API docs: http://localhost:8000/docs  
 Health check: http://localhost:8000/health
 Keycloak admin: http://localhost:8080 (`admin` / `admin`)
+Garage S3 API: http://localhost:3900
+Garage public image endpoint: http://localhost:3902
 
 DB migrations run automatically on startup.
 
@@ -51,6 +53,12 @@ AUTH_MODE=keycloak
 KEYCLOAK_ISSUER=http://localhost:8080/realms/wardrobe
 KEYCLOAK_JWKS_URL=http://localhost:8080/realms/wardrobe/protocol/openid-connect/certs
 KEYCLOAK_AUDIENCE=wardrobe-api
+OBJECT_STORAGE_ENDPOINT=http://localhost:3900
+OBJECT_STORAGE_PUBLIC_URL=http://localhost:3902
+OBJECT_STORAGE_ACCESS_KEY=GKwardrobedev0000000000000000
+OBJECT_STORAGE_SECRET_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+OBJECT_STORAGE_BUCKET=localhost
+OBJECT_STORAGE_REGION=garage
 ```
 
 > The DB runs on host port **5433** (mapped from the container's 5432).
@@ -104,3 +112,9 @@ Local Docker setup imports `keycloak/realm-export.json`:
 
 For backend-only development, set `AUTH_MODE=demo` to use the original seeded demo user
 without requiring a bearer token.
+
+## Object storage
+
+Garment photos are stored in Garage, an S3-compatible object store. The Docker stack runs
+Garage in single-node dev mode, creates the local bucket, and enables Garage's website
+endpoint so image URLs can be loaded directly by the browser.

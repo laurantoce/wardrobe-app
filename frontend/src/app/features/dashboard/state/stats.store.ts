@@ -1,5 +1,4 @@
-import { computed, inject } from '@angular/core';
-import { patchState, signalStore, withComputed, withMethods, withState } from '@ngrx/signals';
+import { computed, inject, Injectable, signal } from '@angular/core';
 import { firstValueFrom, forkJoin } from 'rxjs';
 
 import { ApiError } from '../../../core/error.interceptor';
@@ -25,96 +24,88 @@ function daysAgo(n: number): string {
   return iso(d);
 }
 
-interface StatsState {
-  // Wardrobe snapshot — always current, no date filter
-  summary: Summary | null;
-  colors: ColorUsage[];
-  materials: MaterialCount[];
-  // Spending — date-filtered, reloads on preset change
-  spending: CategorySpending[];
-  spendingSeries: SpendingPoint[];
-  // UI
-  preset: RangePreset;
-  snapshotLoading: boolean;
-  spendingLoading: boolean;
-  error: string | null;
-}
+@Injectable({ providedIn: 'root' })
+export class StatsStore {
+  private readonly api = inject(StatsApi);
 
-const initial: StatsState = {
-  summary: null,
-  colors: [],
-  materials: [],
-  spending: [],
-  spendingSeries: [],
-  preset: 'all',
-  snapshotLoading: false,
-  spendingLoading: false,
-  error: null,
-};
+  readonly summary = signal<Summary | null>(null);
+  readonly colors = signal<ColorUsage[]>([]);
+  readonly materials = signal<MaterialCount[]>([]);
+  readonly spending = signal<CategorySpending[]>([]);
+  readonly spendingSeries = signal<SpendingPoint[]>([]);
+  readonly preset = signal<RangePreset>('all');
+  readonly snapshotLoading = signal(false);
+  readonly spendingLoading = signal(false);
+  readonly error = signal<string | null>(null);
 
-export const StatsStore = signalStore(
-  { providedIn: 'root' },
-  withState(initial),
-  withComputed((store) => ({
-    totalSpent: computed(() => store.spending().reduce((s, c) => s + c.totalSpent, 0)),
-    maxCategorySpend: computed(() =>
-      store.spending().reduce((m, c) => Math.max(m, c.totalSpent), 0),
-    ),
-    maxSeriesSpend: computed(() =>
-      store.spendingSeries().reduce((m, p) => Math.max(m, p.totalSpent), 0),
-    ),
-    maxCategoryCount: computed(() =>
-      (store.summary()?.categoryBreakdown ?? []).reduce((m, c) => Math.max(m, c.total), 0),
-    ),
-  })),
-  withMethods((store, api = inject(StatsApi)) => {
-    function buildRange(): DateRange {
-      const { days } = PRESETS[store.preset()];
-      return days == null
-        ? { start: null, end: null }
-        : { start: daysAgo(days), end: iso(new Date()) };
-    }
+  readonly totalSpent = computed(() => this.spending().reduce((s, c) => s + c.totalSpent, 0));
+  readonly maxCategorySpend = computed(() =>
+    this.spending().reduce((m, c) => Math.max(m, c.totalSpent), 0),
+  );
+  readonly maxSeriesSpend = computed(() =>
+    this.spendingSeries().reduce((m, p) => Math.max(m, p.totalSpent), 0),
+  );
+  readonly maxCategoryCount = computed(() =>
+    (this.summary()?.categoryBreakdown ?? []).reduce((m, c) => Math.max(m, c.total), 0),
+  );
 
-    async function loadSpending(): Promise<void> {
-      patchState(store, { spendingLoading: true });
-      const { period } = PRESETS[store.preset()];
-      const range = buildRange();
-      const data = await firstValueFrom(
-        forkJoin({
-          spending: api.spendingByCategory(range),
-          spendingSeries: api.spendingOverTime(period, range),
+  async load(): Promise<void> {
+    this.snapshotLoading.set(true);
+    this.spendingLoading.set(true);
+    this.error.set(null);
+    try {
+      await Promise.all([
+        firstValueFrom(
+          forkJoin({
+            summary: this.api.summary(),
+            colors: this.api.colors(),
+            materials: this.api.materials(),
+          }),
+        ).then((d) => {
+          this.summary.set(d.summary);
+          this.colors.set(d.colors);
+          this.materials.set(d.materials);
+          this.snapshotLoading.set(false);
         }),
-      );
-      patchState(store, { ...data, spendingLoading: false });
+        this.loadSpending(),
+      ]);
+    } catch (e) {
+      this.error.set((e as ApiError).message);
+      this.snapshotLoading.set(false);
+      this.spendingLoading.set(false);
     }
+  }
 
-    return {
-      async load(): Promise<void> {
-        patchState(store, { snapshotLoading: true, spendingLoading: true, error: null });
-        try {
-          await Promise.all([
-            firstValueFrom(
-              forkJoin({ summary: api.summary(), colors: api.colors(), materials: api.materials() }),
-            ).then((d) => patchState(store, { ...d, snapshotLoading: false })),
-            loadSpending(),
-          ]);
-        } catch (e) {
-          patchState(store, {
-            error: (e as ApiError).message,
-            snapshotLoading: false,
-            spendingLoading: false,
-          });
-        }
-      },
+  async setPreset(preset: RangePreset): Promise<void> {
+    this.preset.set(preset);
+    this.error.set(null);
+    try {
+      await this.loadSpending();
+    } catch (e) {
+      this.error.set((e as ApiError).message);
+      this.spendingLoading.set(false);
+    }
+  }
 
-      async setPreset(preset: RangePreset): Promise<void> {
-        patchState(store, { preset, error: null });
-        try {
-          await loadSpending();
-        } catch (e) {
-          patchState(store, { error: (e as ApiError).message, spendingLoading: false });
-        }
-      },
-    };
-  }),
-);
+  private buildRange(): DateRange {
+    const { days } = PRESETS[this.preset()];
+    return days == null
+      ? { start: null, end: null }
+      : { start: daysAgo(days), end: iso(new Date()) };
+  }
+
+  private async loadSpending(): Promise<void> {
+    this.spendingLoading.set(true);
+    const { period } = PRESETS[this.preset()];
+    const range = this.buildRange();
+    const data = await firstValueFrom(
+      forkJoin({
+        spending: this.api.spendingByCategory(range),
+        spendingSeries: this.api.spendingOverTime(period, range),
+      }),
+    );
+    this.spending.set(data.spending);
+    this.spendingSeries.set(data.spendingSeries);
+    this.spendingLoading.set(false);
+  }
+}

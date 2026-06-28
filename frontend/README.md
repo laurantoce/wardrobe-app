@@ -14,6 +14,7 @@ docker compose up --build
 App: http://localhost:4200  
 Uses `proxy.conf.docker.json` to proxy `/api` → `http://backend:8000`.
 Keycloak: http://localhost:8080 (`demo@wardrobe.local` / `demo` for app login)
+Garage public image endpoint: http://localhost:3902
 
 ## Running locally
 

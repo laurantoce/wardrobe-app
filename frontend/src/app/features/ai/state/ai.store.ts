@@ -1,37 +1,37 @@
-import { inject } from '@angular/core';
-import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
+import { inject, Injectable, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import { ApiError } from '../../../core/error.interceptor';
 import { AiApi } from '../data/ai-api.service';
 import { OutfitSuggestion, SuggestionRequest } from '../data/ai.models';
 
-interface AiState {
-  suggestions: OutfitSuggestion[];
-  loading: boolean;
-  error: string | null;
-  hasFetched: boolean;
-}
+@Injectable({ providedIn: 'root' })
+export class AiStore {
+  private readonly api = inject(AiApi);
 
-export const AiStore = signalStore(
-  { providedIn: 'root' },
-  withState<AiState>({ suggestions: [], loading: false, error: null, hasFetched: false }),
-  withMethods((store, api = inject(AiApi)) => ({
-    async suggest(request: SuggestionRequest): Promise<void> {
-      patchState(store, { loading: true, error: null });
-      try {
-        const suggestions = await firstValueFrom(api.suggest(request));
-        patchState(store, { suggestions, loading: false, hasFetched: true });
-      } catch (e) {
-        patchState(store, {
-          loading: false,
-          hasFetched: true,
-          error: (e as ApiError).message,
-        });
-      }
-    },
-    reset(): void {
-      patchState(store, { suggestions: [], error: null, hasFetched: false });
-    },
-  })),
-);
+  readonly suggestions = signal<OutfitSuggestion[]>([]);
+  readonly loading = signal(false);
+  readonly error = signal<string | null>(null);
+  readonly hasFetched = signal(false);
+
+  async suggest(request: SuggestionRequest): Promise<void> {
+    this.loading.set(true);
+    this.error.set(null);
+    try {
+      const suggestions = await firstValueFrom(this.api.suggest(request));
+      this.suggestions.set(suggestions);
+      this.loading.set(false);
+      this.hasFetched.set(true);
+    } catch (e) {
+      this.loading.set(false);
+      this.hasFetched.set(true);
+      this.error.set((e as ApiError).message);
+    }
+  }
+
+  reset(): void {
+    this.suggestions.set([]);
+    this.error.set(null);
+    this.hasFetched.set(false);
+  }
+}

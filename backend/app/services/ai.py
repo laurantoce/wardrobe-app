@@ -7,7 +7,7 @@ from app.models import Garment
 from app.repositories import GarmentRepository
 from app.schemas.ai import GarmentPhotoAnalysis, OutfitSuggestion, SuggestedGarment, SuggestionRequest, SuggestionResponse
 from app.schemas.garment import MaterialEntry
-from app.services.upload import upload_to_minio
+from app.services.upload import upload_to_object_storage
 
 _PHOTO_ANALYSIS_PROMPT = """\
 Analyze this clothing item photo (may show the garment itself, its care label, or brand tag).
@@ -105,7 +105,7 @@ class AIService:
             raise ExternalServiceError(f"AI provider error: {exc}") from exc
 
     def analyze_garment_photo(self, image_bytes: bytes, mime_type: str) -> GarmentPhotoAnalysis:
-        image_url = upload_to_minio(image_bytes, mime_type)
+        image_url = upload_to_object_storage(image_bytes, mime_type)
         try:
             raw = self._llm.analyze_image(image_bytes, mime_type, _PHOTO_ANALYSIS_PROMPT)
             data = json.loads(raw)

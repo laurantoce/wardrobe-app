@@ -39,6 +39,7 @@ This app is also a **portfolio project** meant to demonstrate:
 | DB       | PostgreSQL 18 (via Docker Compose, host port **5433**)  |
 | Migrations | Alembic                                         |
 | Frontend | Angular 20 (standalone, signals, zoneless) + @ngrx/signals + Tailwind v4 |
+| Object storage | Garage v2.3.0 (S3-compatible local photo storage) |
 | Deploy   | Kubernetes + GitHub Actions CI/CD — **planned, not built yet** |
 | Mobile   | Capacitor wrapper → Android Play Store — **planned, not built yet** |
 | AI       | Free-tier LLM (Gemini Flash / Groq) for outfit suggestions — **planned, not built yet** |
@@ -76,7 +77,7 @@ frontend/
   proxy.conf.json         # dev (local): /api -> http://localhost:8000
   proxy.conf.docker.json  # dev (Docker): /api -> http://backend:8000
   Dockerfile
-docker-compose.yml   # Postgres + backend + frontend
+docker-compose.yml   # Postgres + Garage + Keycloak + backend + frontend
 ```
 
 ### Backend architecture (layered)
@@ -154,6 +155,16 @@ Local dev credentials imported by the realm:
 For production or Play Store builds, Keycloak must run behind HTTPS with real secrets and
 proper redirect URIs for the deployed web origin and Capacitor Android callback.
 
+## Object storage
+
+Local photo storage uses **Garage** through its S3-compatible API:
+
+- `docker-compose.yml` starts Garage at http://localhost:3900 for the S3 API and
+  http://localhost:3902 for public image reads.
+- The backend uses `boto3` with `OBJECT_STORAGE_*` settings in `app/config.py`.
+- The local Docker bucket is named `localhost` so Garage's website endpoint can serve
+  uploaded image keys directly from `http://localhost:3902/{key}`.
+
 ## Running locally
 
 ### Option 1 — full Docker stack (recommended)
@@ -165,6 +176,8 @@ docker compose up --build
 - Frontend → http://localhost:4200
 - Backend API → http://localhost:8000/docs
 - Keycloak admin → http://localhost:8080
+- Garage S3 API → http://localhost:3900
+- Garage public image endpoint → http://localhost:3902
 - DB migrations run automatically on backend startup.
 - Source is mounted as a volume so hot-reload works for the backend (uvicorn --reload).
   Frontend hot-reload via `--poll 2000` (slower than native but works on Docker/Windows).
@@ -231,7 +244,7 @@ npm start   # ng serve on http://localhost:4200, proxies /api -> :8000
       backup/restore, mobile redirect URI, Kubernetes manifests)
 
 ### Product features
-- [ ] Cloudinary image upload for garments (frontend has `imageUrl`/`sourceUrl` fields ready)
+- [ ] Production object storage hardening for garment photos (TLS, backups, private access strategy)
 - [ ] Outfit detail/edit page
 - [ ] Richer charts (line charts), dark mode
 
@@ -243,3 +256,4 @@ npm start   # ng serve on http://localhost:4200, proxies /api -> :8000
 - [x] Full Docker Compose stack (postgres + backend + frontend, one command)
 - [x] **Local Keycloak auth** (Docker service + imported realm; FastAPI JWT validation;
       Angular OIDC login, guard, and token interceptor)
+- [x] **Local Garage object storage** (S3-compatible photo uploads and public image serving)

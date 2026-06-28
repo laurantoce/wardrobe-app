@@ -2,7 +2,7 @@ from fastapi import APIRouter, File, UploadFile, status
 
 from app.dependencies import CurrentUser, GarmentServiceDep
 from app.schemas import GarmentCreate, GarmentRead, GarmentUpdate
-from app.services.upload import upload_to_minio
+from app.services.upload import upload_to_object_storage
 
 router = APIRouter(prefix="/garments", tags=["garments"])
 
@@ -49,7 +49,7 @@ async def replace_garment_photo(
     file: UploadFile = File(...),
 ):
     image_bytes = await file.read()
-    url = upload_to_minio(image_bytes, file.content_type or "image/jpeg")
+    url = upload_to_object_storage(image_bytes, file.content_type or "image/jpeg")
     return service.update(user.id, garment_id, GarmentUpdate(image_url=url))
 
 

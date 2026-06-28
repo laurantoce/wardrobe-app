@@ -1,40 +1,40 @@
-"""MinIO upload utility — shared between AIService and the photo endpoints."""
-import json
+"""S3-compatible object storage upload utility."""
+
 import uuid
 
 
-def upload_to_minio(image_bytes: bytes, mime_type: str) -> str | None:
+def upload_to_object_storage(image_bytes: bytes, mime_type: str) -> str | None:
     from app.config import settings
-    if not settings.minio_endpoint:
+
+    if not settings.object_storage_endpoint or not settings.object_storage_public_url:
         return None
+
     try:
         import boto3
         from botocore.client import Config
 
         s3 = boto3.client(
             "s3",
-            endpoint_url=settings.minio_endpoint,
-            aws_access_key_id=settings.minio_access_key,
-            aws_secret_access_key=settings.minio_secret_key,
-            config=Config(signature_version="s3v4"),
-            region_name="us-east-1",
+            endpoint_url=settings.object_storage_endpoint,
+            aws_access_key_id=settings.object_storage_access_key,
+            aws_secret_access_key=settings.object_storage_secret_key,
+            config=Config(
+                signature_version="s3v4",
+                s3={"addressing_style": "path"},
+            ),
+            region_name=settings.object_storage_region,
         )
-        bucket = settings.minio_bucket
+        bucket = settings.object_storage_bucket
 
-        # Idempotent: create bucket + public-read policy on first use
         try:
             s3.create_bucket(Bucket=bucket)
-            s3.put_bucket_policy(Bucket=bucket, Policy=json.dumps({
-                "Version": "2012-10-17",
-                "Statement": [{"Effect": "Allow", "Principal": {"AWS": ["*"]},
-                               "Action": ["s3:GetObject"], "Resource": [f"arn:aws:s3:::{bucket}/*"]}],
-            }))
         except Exception:
-            pass  # bucket already exists
+            pass
 
         ext = mime_type.split("/")[-1].replace("jpeg", "jpg")
         key = f"{uuid.uuid4()}.{ext}"
         s3.put_object(Bucket=bucket, Key=key, Body=image_bytes, ContentType=mime_type)
-        return f"{settings.minio_public_url}/{bucket}/{key}"
+
+        return f"{settings.object_storage_public_url.rstrip('/')}/{key}"
     except Exception:
         return None
