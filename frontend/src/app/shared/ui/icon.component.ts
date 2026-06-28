@@ -15,7 +15,8 @@ export type IconName =
   | 'log-in'
   | 'log-out'
   | 'chevron-left'
-  | 'camera';
+  | 'camera'
+  | 'scissors';
 
 /** Minimal inline (lucide-style) icon set. Rendered via @switch so SVG children
  *  aren't stripped by Angular's HTML sanitizer. */
@@ -93,6 +94,13 @@ export type IconName =
         @case ('camera') {
           <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
           <circle cx="12" cy="13" r="3" />
+        }
+        @case ('scissors') {
+          <circle cx="6" cy="6" r="3" />
+          <circle cx="6" cy="18" r="3" />
+          <path d="M20 4 8.12 15.88" />
+          <path d="M14.47 14.48 20 20" />
+          <path d="M8.12 8.12 12 12" />
         }
       }
     </svg>

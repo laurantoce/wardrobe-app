@@ -116,6 +116,9 @@ services:
       KEYCLOAK_ISSUER: http://localhost:8080/realms/wardrobe
       KEYCLOAK_JWKS_URL: http://keycloak:8080/realms/wardrobe/protocol/openid-connect/certs
       KEYCLOAK_AUDIENCE: wardrobe-api
+      BACKGROUND_REMOVAL_ENABLED: "true"
+      BACKGROUND_REMOVAL_MODEL: u2net
+      U2NET_HOME: /models/rembg
     depends_on:
       postgres:
         condition: service_healthy
@@ -125,6 +128,7 @@ services:
         condition: service_completed_successfully
     volumes:
       - ./backend:/app
+      - wardrobe_rembg_models:/models/rembg
 
   frontend:
     build: ./frontend
@@ -145,3 +149,4 @@ volumes:
   wardrobe_garage_meta:
   wardrobe_garage_data:
   wardrobe_keycloak_data:
+  wardrobe_rembg_models:

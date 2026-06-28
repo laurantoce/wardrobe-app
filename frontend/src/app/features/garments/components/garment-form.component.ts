@@ -24,6 +24,8 @@ const TYPE_HINTS: Record<string, string> = {
   accessory: 'bag, scarf, hat, belt, jewelry…',
 };
 
+type PhotoVariant = 'original' | 'cutout';
+
 @Component({
   selector: 'app-garment-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -45,11 +47,11 @@ const TYPE_HINTS: Record<string, string> = {
         />
 
         @if (imagePreview()) {
-          <div class="relative overflow-hidden rounded-lg">
+          <div class="relative overflow-hidden rounded-lg bg-canvas">
             <img
               [src]="imagePreview()"
               alt="Garment photo"
-              class="max-h-52 w-full object-cover"
+              class="max-h-52 w-full object-contain"
             />
             @if (analyzing()) {
               <div class="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/50">
@@ -58,6 +60,33 @@ const TYPE_HINTS: Record<string, string> = {
               </div>
             }
           </div>
+          @if (originalImageUrl() && cutoutImageUrl() && !analyzing()) {
+            <div class="mt-2 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                (click)="selectPhotoVariant('original')"
+                [class]="photoVariant() === 'original'
+                  ? 'flex items-center justify-center gap-1.5 rounded-lg border border-accent bg-accent-soft px-3 py-2 text-xs font-medium text-accent'
+                  : 'flex items-center justify-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-medium text-muted hover:border-accent/50 hover:text-ink'"
+              >
+                <ui-icon name="camera" [size]="15" />
+                Original
+              </button>
+              <button
+                type="button"
+                (click)="selectPhotoVariant('cutout')"
+                [class]="photoVariant() === 'cutout'
+                  ? 'flex items-center justify-center gap-1.5 rounded-lg border border-accent bg-accent-soft px-3 py-2 text-xs font-medium text-accent'
+                  : 'flex items-center justify-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-medium text-muted hover:border-accent/50 hover:text-ink'"
+              >
+                <ui-icon name="scissors" [size]="15" />
+                Cutout
+              </button>
+            </div>
+          }
+          @if (cutoutError() && !analyzing()) {
+            <p class="mt-1.5 text-xs text-faint">Cutout unavailable; original kept.</p>
+          }
           @if (aiFieldCount() > 0 && !analyzing()) {
             <p class="mt-1.5 text-xs text-faint">
               AI pre-filled {{ aiFieldCount() }} fields · review before saving
@@ -86,7 +115,6 @@ const TYPE_HINTS: Record<string, string> = {
           </button>
         }
       </div>
-
       <div>
         <label [class]="LABEL" for="name">Name</label>
         <input id="name" [class]="FIELD" formControlName="name" placeholder="White Linen Shirt" />
@@ -278,6 +306,10 @@ export class GarmentFormComponent {
   // Photo state
   protected readonly imageUrl = signal<string | null | undefined>(undefined);
   protected readonly imagePreview = signal<string | null>(null);
+  protected readonly originalImageUrl = signal<string | null>(null);
+  protected readonly cutoutImageUrl = signal<string | null>(null);
+  protected readonly cutoutError = signal<string | null>(null);
+  protected readonly photoVariant = signal<PhotoVariant>('original');
   protected readonly analyzing = signal(false);
   protected readonly aiFieldCount = signal(0);
 
@@ -331,6 +363,10 @@ export class GarmentFormComponent {
       this.selectedMaterials.set(g.material ?? []);
       this.imageUrl.set(g.imageUrl ?? null);
       this.imagePreview.set(g.imageUrl ?? null);
+      this.originalImageUrl.set(g.imageUrl ?? null);
+      this.cutoutImageUrl.set(null);
+      this.cutoutError.set(null);
+      this.photoVariant.set('original');
     });
   }
 
@@ -365,7 +401,19 @@ export class GarmentFormComponent {
   protected removePhoto(): void {
     this.imageUrl.set(null);
     this.imagePreview.set(null);
+    this.originalImageUrl.set(null);
+    this.cutoutImageUrl.set(null);
+    this.cutoutError.set(null);
+    this.photoVariant.set('original');
     this.aiFieldCount.set(0);
+  }
+
+  protected selectPhotoVariant(variant: PhotoVariant): void {
+    const url = variant === 'cutout' ? this.cutoutImageUrl() : this.originalImageUrl();
+    if (!url) return;
+    this.photoVariant.set(variant);
+    this.imageUrl.set(url);
+    this.imagePreview.set(url);
   }
 
   protected onFileSelected(input: HTMLInputElement): void {
@@ -374,15 +422,24 @@ export class GarmentFormComponent {
 
     const localUrl = URL.createObjectURL(file);
     this.imagePreview.set(localUrl);
+    this.imageUrl.set(undefined);
+    this.originalImageUrl.set(null);
+    this.cutoutImageUrl.set(null);
+    this.cutoutError.set(null);
+    this.photoVariant.set('original');
     this.analyzing.set(true);
     this.aiFieldCount.set(0);
 
     this.api.analyzePhoto(file).subscribe({
       next: (analysis) => {
         this.analyzing.set(false);
-        if (analysis.imageUrl) {
-          this.imageUrl.set(analysis.imageUrl);
-          this.imagePreview.set(analysis.imageUrl);
+        const originalUrl = analysis.originalImageUrl ?? analysis.imageUrl;
+        this.originalImageUrl.set(originalUrl);
+        this.cutoutImageUrl.set(analysis.cutoutImageUrl);
+        this.cutoutError.set(analysis.cutoutError);
+        if (originalUrl) {
+          this.imageUrl.set(originalUrl);
+          this.imagePreview.set(originalUrl);
         }
         this.applyAnalysis(analysis);
       },

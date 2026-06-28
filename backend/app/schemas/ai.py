@@ -14,6 +14,9 @@ class SuggestionRequest(BaseModel):
 
 class GarmentPhotoAnalysis(BaseModel):
     image_url: str | None = None
+    original_image_url: str | None = None
+    cutout_image_url: str | None = None
+    cutout_error: str | None = None
     name: str | None = None
     category: str | None = None
     sub_type: str | None = None

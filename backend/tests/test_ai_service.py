@@ -5,6 +5,7 @@ import pytest
 
 from app.exceptions import ExternalServiceError, ValidationError
 from app.schemas.ai import SuggestionRequest
+from app.services.image_processing import ProcessedImage
 from app.services.ai import AIService
 
 
@@ -76,6 +77,23 @@ def test_ai_service_rejects_invalid_llm_json():
         service.suggest_outfits(7, SuggestionRequest())
 
 
+def test_ai_service_requires_llm_for_outfit_suggestions():
+    service = AIService(FakeGarments([]), None)
+
+    with pytest.raises(ExternalServiceError, match="AI not configured"):
+        service.suggest_outfits(7, SuggestionRequest())
+
+
+def test_ai_service_uploads_photo_without_llm(monkeypatch):
+    monkeypatch.setattr("app.services.ai.upload_to_object_storage", lambda *_: "http://cdn/item.jpg")
+    service = AIService(FakeGarments([]), None)
+
+    analysis = service.analyze_garment_photo(b"image", "image/jpeg", generate_cutout=False)
+
+    assert analysis.image_url == "http://cdn/item.jpg"
+    assert analysis.original_image_url == "http://cdn/item.jpg"
+    assert analysis.name is None
+
 def test_ai_service_analyzes_photo_and_includes_uploaded_url(monkeypatch):
     llm = FakeLLM(
         image_response=(
@@ -88,10 +106,33 @@ def test_ai_service_analyzes_photo_and_includes_uploaded_url(monkeypatch):
     monkeypatch.setattr("app.services.ai.upload_to_object_storage", lambda *_: "http://cdn/item.jpg")
     service = AIService(FakeGarments([]), llm)
 
-    analysis = service.analyze_garment_photo(b"image", "image/jpeg")
+    analysis = service.analyze_garment_photo(b"image", "image/jpeg", generate_cutout=False)
 
     assert analysis.image_url == "http://cdn/item.jpg"
     assert analysis.name == "Linen Blazer"
     assert analysis.purchase_price == Decimal("129.5")
     assert analysis.material[0].material == "linen"
     assert llm.image_args[0] == b"image"
+
+
+def test_ai_service_generates_optional_cutout(monkeypatch):
+    uploads = []
+    llm = FakeLLM(image_response='{"name":"Tee","category":"top"}')
+
+    def fake_upload(image_bytes, mime_type):
+        uploads.append((image_bytes, mime_type))
+        return f"http://cdn/{len(uploads)}.png"
+
+    monkeypatch.setattr("app.services.ai.upload_to_object_storage", fake_upload)
+    monkeypatch.setattr(
+        "app.services.ai.remove_background",
+        lambda image_bytes: ProcessedImage(b"cutout", "image/png"),
+    )
+    service = AIService(FakeGarments([]), llm)
+
+    analysis = service.analyze_garment_photo(b"image", "image/jpeg")
+
+    assert analysis.image_url == "http://cdn/1.png"
+    assert analysis.original_image_url == "http://cdn/1.png"
+    assert analysis.cutout_image_url == "http://cdn/2.png"
+    assert uploads == [(b"image", "image/jpeg"), (b"cutout", "image/png")]

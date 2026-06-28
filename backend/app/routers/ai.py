@@ -17,6 +17,9 @@ def suggest_outfits(
 async def analyze_garment_photo(
     service: AIServiceDep,
     file: UploadFile = File(...),
+    generate_cutout: bool = True,
 ):
     image_bytes = await file.read()
-    return service.analyze_garment_photo(image_bytes, file.content_type or "image/jpeg")
+    return service.analyze_garment_photo(
+        image_bytes, file.content_type or "image/jpeg", generate_cutout
+    )

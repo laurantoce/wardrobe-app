@@ -61,6 +61,9 @@ export interface MaterialEntry {
 /** Wire DTO from POST /ai/analyze-garment-photo */
 interface GarmentPhotoAnalysisDto {
   image_url: string | null;
+  original_image_url: string | null;
+  cutout_image_url: string | null;
+  cutout_error: string | null;
   name: string | null;
   category: string | null;
   sub_type: string | null;
@@ -75,6 +78,9 @@ interface GarmentPhotoAnalysisDto {
 /** Domain model for photo analysis result. */
 export interface GarmentPhotoAnalysis {
   imageUrl: string | null;
+  originalImageUrl: string | null;
+  cutoutImageUrl: string | null;
+  cutoutError: string | null;
   name: string | null;
   category: string | null;
   subType: string | null;
@@ -89,6 +95,9 @@ export interface GarmentPhotoAnalysis {
 export function toPhotoAnalysis(dto: GarmentPhotoAnalysisDto): GarmentPhotoAnalysis {
   return {
     imageUrl: dto.image_url,
+    originalImageUrl: dto.original_image_url,
+    cutoutImageUrl: dto.cutout_image_url,
+    cutoutError: dto.cutout_error,
     name: dto.name,
     category: dto.category,
     subType: dto.sub_type,

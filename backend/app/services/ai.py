@@ -7,6 +7,7 @@ from app.models import Garment
 from app.repositories import GarmentRepository
 from app.schemas.ai import GarmentPhotoAnalysis, OutfitSuggestion, SuggestedGarment, SuggestionRequest, SuggestionResponse
 from app.schemas.garment import MaterialEntry
+from app.services.image_processing import remove_background
 from app.services.upload import upload_to_object_storage
 
 _PHOTO_ANALYSIS_PROMPT = """\
@@ -51,11 +52,14 @@ Wardrobe:
 
 
 class AIService:
-    def __init__(self, garments: GarmentRepository, llm: LLMClient) -> None:
+    def __init__(self, garments: GarmentRepository, llm: LLMClient | None) -> None:
         self._garments = garments
         self._llm = llm
 
     def suggest_outfits(self, user_id: int, request: SuggestionRequest) -> SuggestionResponse:
+        if self._llm is None:
+            raise ExternalServiceError("AI not configured: set GEMINI_API_KEY in .env")
+
         wardrobe = self._garments.list_for_user(user_id)
         if not wardrobe:
             raise ValidationError("Add some garments to your wardrobe first.")
@@ -104,13 +108,28 @@ class AIService:
         except Exception as exc:
             raise ExternalServiceError(f"AI provider error: {exc}") from exc
 
-    def analyze_garment_photo(self, image_bytes: bytes, mime_type: str) -> GarmentPhotoAnalysis:
-        image_url = upload_to_object_storage(image_bytes, mime_type)
-        try:
-            raw = self._llm.analyze_image(image_bytes, mime_type, _PHOTO_ANALYSIS_PROMPT)
-            data = json.loads(raw)
-        except Exception as exc:
-            raise ExternalServiceError(f"AI photo analysis failed: {exc}") from exc
+    def analyze_garment_photo(
+        self, image_bytes: bytes, mime_type: str, generate_cutout: bool = True
+    ) -> GarmentPhotoAnalysis:
+        original_image_url = upload_to_object_storage(image_bytes, mime_type)
+        cutout_image_url: str | None = None
+        cutout_error: str | None = None
+        if generate_cutout:
+            try:
+                cutout = remove_background(image_bytes)
+                if cutout is not None:
+                    cutout_image_url = upload_to_object_storage(
+                        cutout.image_bytes, cutout.mime_type
+                    )
+            except ExternalServiceError as exc:
+                cutout_error = str(exc)
+        data = {}
+        if self._llm is not None:
+            try:
+                raw = self._llm.analyze_image(image_bytes, mime_type, _PHOTO_ANALYSIS_PROMPT)
+                data = json.loads(raw)
+            except Exception as exc:
+                raise ExternalServiceError(f"AI photo analysis failed: {exc}") from exc
 
         materials: list[MaterialEntry] = []
         for m in (data.get("material") or []):
@@ -121,7 +140,10 @@ class AIService:
         price = Decimal(str(price_raw)) if price_raw is not None else None
 
         return GarmentPhotoAnalysis(
-            image_url=image_url,
+            image_url=original_image_url,
+            original_image_url=original_image_url,
+            cutout_image_url=cutout_image_url,
+            cutout_error=cutout_error,
             name=data.get("name"),
             category=data.get("category"),
             sub_type=data.get("sub_type"),

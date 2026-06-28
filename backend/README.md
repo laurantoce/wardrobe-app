@@ -53,12 +53,15 @@ AUTH_MODE=keycloak
 KEYCLOAK_ISSUER=http://localhost:8080/realms/wardrobe
 KEYCLOAK_JWKS_URL=http://localhost:8080/realms/wardrobe/protocol/openid-connect/certs
 KEYCLOAK_AUDIENCE=wardrobe-api
+GEMINI_API_KEY=<your-key-if-using-ai>
 OBJECT_STORAGE_ENDPOINT=http://localhost:3900
 OBJECT_STORAGE_PUBLIC_URL=http://localhost:3902
 OBJECT_STORAGE_ACCESS_KEY=GKwardrobedev0000000000000000
 OBJECT_STORAGE_SECRET_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 OBJECT_STORAGE_BUCKET=localhost
 OBJECT_STORAGE_REGION=garage
+BACKGROUND_REMOVAL_ENABLED=true
+BACKGROUND_REMOVAL_MODEL=u2net
 ```
 
 > The DB runs on host port **5433** (mapped from the container's 5432).
@@ -118,3 +121,16 @@ without requiring a bearer token.
 Garment photos are stored in Garage, an S3-compatible object store. The Docker stack runs
 Garage in single-node dev mode, creates the local bucket, and enables Garage's website
 endpoint so image URLs can be loaded directly by the browser.
+
+## Photo analysis and image processing direction
+
+`POST /ai/analyze-garment-photo` uploads the original image to Garage, calls the Gemini
+vision client, and returns editable garment metadata for the frontend form. Live provider
+calls require `GEMINI_API_KEY`.
+
+Background removal is implemented as an optional backend step with `rembg[cpu]` and the
+configured `BACKGROUND_REMOVAL_MODEL`. The original image is kept, and the frontend can
+choose between the original URL and the generated transparent PNG cutout when available.
+
+Multi-garment import should be a second phase: detect garment regions first, segment/cut
+out each accepted item, and let the frontend review candidates before creating garments.

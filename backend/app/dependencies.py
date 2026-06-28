@@ -13,7 +13,6 @@ from app.ai.client import GeminiClient, LLMClient
 from app.auth import credentials_exception, decode_access_token
 from app.config import settings
 from app.database import get_db
-from app.exceptions import ExternalServiceError
 from app.models import User
 from app.repositories import (
     GarmentRepository,
@@ -102,15 +101,15 @@ StatsServiceDep = Annotated[StatsService, Depends(get_stats_service)]
 
 
 # --- AI -------------------------------------------------------------------------
-def get_llm_client() -> LLMClient:
+def get_llm_client() -> LLMClient | None:
     if not settings.gemini_api_key:
-        raise ExternalServiceError("AI not configured: set GEMINI_API_KEY in .env")
+        return None
     return GeminiClient(settings.gemini_api_key)
 
 
 def get_ai_service(
     garments: Annotated[GarmentRepository, Depends(get_garment_repository)],
-    llm: Annotated[LLMClient, Depends(get_llm_client)],
+    llm: Annotated[LLMClient | None, Depends(get_llm_client)],
 ) -> AIService:
     return AIService(garments, llm)
 

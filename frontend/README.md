@@ -1,6 +1,6 @@
 # Wardrobe App — Frontend
 
-Angular 20 SPA: standalone components, **zoneless** change detection, signals,
+Angular 22 SPA: standalone components, **zoneless** change detection, signals,
 `@ngrx/signals` state, Tailwind v4. Talks to the FastAPI backend.
 
 ## Running (Docker — recommended)
@@ -87,9 +87,18 @@ Compose:
 Feature routes are guarded, and API requests to `/api` receive the bearer access token
 through `core/auth.interceptor.ts`.
 
+## Photo upload direction
+
+The current garment form uploads a photo, stores it through the backend in Garage, and
+uses `/ai/analyze-garment-photo` to pre-fill editable garment fields.
+
+Upload UX: after selecting a photo, the form keeps the original image by default and
+shows a Cutout option when the backend returns a background-removed PNG. Multi-garment
+import is still planned as a review-grid flow that creates editable draft garments only
+for accepted detections.
+
 ## Notes / TODO
 
 - Capacitor Android packaging still needs mobile redirect URI testing against the native
   wrapper.
-- No unit tests yet.
-- Next: AI outfit suggestions, outfit detail/edit page, richer charts, dark mode.
+- Next: multi-garment import, outfit detail/edit page, richer charts, dark mode.

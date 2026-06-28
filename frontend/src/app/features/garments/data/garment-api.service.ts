@@ -46,12 +46,13 @@ export class GarmentApi {
     return this.http.delete<void>(`${this.base}/${id}`);
   }
 
-  analyzePhoto(file: File): Observable<GarmentPhotoAnalysis> {
+  analyzePhoto(file: File, generateCutout = true): Observable<GarmentPhotoAnalysis> {
     const form = new FormData();
     form.append('file', file);
+    const params = new HttpParams().set('generate_cutout', String(generateCutout));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return this.http
-      .post<any>(`${API_BASE}/ai/analyze-garment-photo`, form)
+      .post<any>(`${API_BASE}/ai/analyze-garment-photo`, form, { params })
       .pipe(map(toPhotoAnalysis));
   }
 

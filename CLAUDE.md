@@ -16,8 +16,9 @@ catalogs their clothes and outfits, then gets AI help to make better use of what
 **Note:** Wear/wash tracking has been intentionally removed — the focus is on the wardrobe
 as a catalog and on AI-driven outfit suggestions.
 
-**Future:** AI integration (Gemini 2.5 Flash, free tier) for outfit suggestions and
-insights. Image hosting via Cloudinary. Neither is wired up yet — keys are stubbed in config.
+**Current AI/storage state:** AI endpoints exist for outfit suggestions and garment-photo
+analysis through Gemini 2.5 Flash (`google-genai`); live calls require `GEMINI_API_KEY`.
+Garment photos are stored locally in Garage through its S3-compatible API.
 
 ## Project goals (beyond the product itself)
 
@@ -38,7 +39,7 @@ This app is also a **portfolio project** meant to demonstrate:
 | Backend  | FastAPI + SQLAlchemy 2.0 (typed `Mapped`) + Pydantic v2 |
 | DB       | PostgreSQL 18 (via Docker Compose, host port **5433**)  |
 | Migrations | Alembic                                         |
-| Frontend | Angular 20 (standalone, signals, zoneless) + @ngrx/signals + Tailwind v4 |
+| Frontend | Angular 22 (standalone, signals, zoneless) + @ngrx/signals + Tailwind v4 |
 | Object storage | Garage v2.3.0 (S3-compatible local photo storage) |
 | Deploy   | Kubernetes + GitHub Actions CI/CD — **planned, not built yet** |
 | Mobile   | Capacitor wrapper → Android Play Store — **planned, not built yet** |
@@ -102,7 +103,7 @@ Request flow: **router → service → repository → DB**.
 
 Data flow: **component → store (signals) → API service → HTTP**.
 
-- **Angular 20**: standalone components, **zoneless** change detection, signals
+- **Angular 22**: standalone components, **zoneless** change detection, signals
   everywhere (`signal`/`computed`/`input()`/`output()`), `@if`/`@for` control flow,
   `inject()`, `OnPush`, lazy `loadComponent` routes, `withComponentInputBinding()`.
 - **Data access** (`features/*/data/`): one API service per resource. The backend speaks
@@ -165,6 +166,28 @@ Local photo storage uses **Garage** through its S3-compatible API:
 - The local Docker bucket is named `localhost` so Garage's website endpoint can serve
   uploaded image keys directly from `http://localhost:3902/{key}`.
 
+## Garment image import direction
+
+Current behavior: upload one photo in the garment form, store it in Garage, run Gemini
+photo analysis, then pre-fill garment fields for review before saving.
+
+Planned modern flow:
+
+- After upload, show a review step with two choices: **keep original photo** or **create
+  cutout**. Keep the original as the source image and store the accepted derivative as the
+  garment image URL.
+- Use self-hosted open-source image processing rather than a paid background-removal API.
+  First implementation: `rembg[cpu]` with a configurable `rembg` model for single-subject
+  cutouts. Later: Grounding DINO + SAM 2 for detecting multiple garment boxes and
+  segmenting each one.
+- If one photo contains multiple garments, detect garment regions first, render a review
+  grid of candidate cutouts, and create one draft garment per accepted crop/cutout. The
+  UI should let the user deselect false positives and edit each generated draft before
+  persisting them.
+- Keep this behind a backend service boundary (`image_processing` or similar) so FastAPI
+  owns uploads, Garage writes, and model inference can later move to a worker/GPU service
+  without changing Angular data flow.
+
 ## Running locally
 
 ### Option 1 — full Docker stack (recommended)
@@ -220,10 +243,11 @@ npm start   # ng serve on http://localhost:4200, proxies /api -> :8000
 
 ## Roadmap / TODO
 
-### AI integration (next focus)
-- [ ] **AI outfit suggestions** — given occasion/season/vibe, suggest outfits from the
-      user's wardrobe. Provider: **Gemini 2.5 Flash** (free tier, `google-genai` SDK,
-      `GEMINI_API_KEY` in config/env).
+### Image intelligence / AI
+- [x] **Background cutout on upload** — offer "keep original" vs "create cutout" and store
+      the accepted image derivative in Garage.
+- [ ] **Multi-garment photo import** — detect multiple garments in one photo, show review
+      cards, and create one draft garment per accepted result.
 - [ ] "Paste a product URL → AI fills category/color/name" (vision/extraction, reuses AI service)
 
 ### DevOps / Infrastructure
@@ -257,3 +281,5 @@ npm start   # ng serve on http://localhost:4200, proxies /api -> :8000
 - [x] **Local Keycloak auth** (Docker service + imported realm; FastAPI JWT validation;
       Angular OIDC login, guard, and token interceptor)
 - [x] **Local Garage object storage** (S3-compatible photo uploads and public image serving)
+- [x] **AI outfit suggestions and garment-photo analysis endpoints** (Gemini 2.5 Flash via
+      `google-genai`; requires `GEMINI_API_KEY` for live calls)

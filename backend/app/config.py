@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     gemini_api_key: str = ""
+    background_removal_enabled: bool = True
+    background_removal_model: str = "u2net"
     keycloak_issuer: str = "http://localhost:8080/realms/wardrobe"
     keycloak_jwks_url: str = (
         "http://localhost:8080/realms/wardrobe/protocol/openid-connect/certs"
